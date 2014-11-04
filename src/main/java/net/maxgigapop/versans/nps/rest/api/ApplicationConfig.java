@@ -14,7 +14,7 @@ import javax.ws.rs.core.Application;
  * @author xyang
  */
 
-@ApplicationPath("/*")
+@ApplicationPath("/")
 public class ApplicationConfig extends Application {
 
     @Override
@@ -31,8 +31,8 @@ public class ApplicationConfig extends Application {
      * If required, comment out calling this method in getClasses().
      */
     private void addRestResourceClasses(Set<Class<?>> resources) {
-        resources.add(net.maxgigapop.versans.nps.rest.model.ModelBase.class);
-        resources.add(net.maxgigapop.versans.nps.rest.model.DeltaBase.class);
+        resources.add(net.maxgigapop.versans.nps.rest.api.ModelResource.class);
+        resources.add(net.maxgigapop.versans.nps.rest.api.DeltaResource.class);
     }
     
 }
