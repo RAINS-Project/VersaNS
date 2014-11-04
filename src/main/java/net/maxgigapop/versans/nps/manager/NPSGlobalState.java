@@ -37,7 +37,7 @@ public class NPSGlobalState {
     public static void init() throws ConfigException, ServiceException {
     	Inited = true;
         //init from yaml config file
-        NPSConfigYaml.loadConfig("/etc/sdnx/nps/nps.yaml");
+        NPSConfigYaml.loadConfig("/etc/versans/nps/nps.yaml");
         NPSGlobalConfig config = NPSConfigYaml.getInstance().getNPSGlobalConfig();
         if (config.getDbUser() != null && !config.getDbUser().isEmpty()) {
             dbUser = config.getDbUser();
