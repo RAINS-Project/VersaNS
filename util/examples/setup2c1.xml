@@ -1,0 +1,57 @@
+POST /NPService/NPService HTTP/1.1
+User-Agent: wsdlpull/1.23
+Host: localhost:8080
+SOAPAction:
+"setup"
+Content-Type: text/xml; charset=UTF-8
+Accept: text/xml;
+Content-Length: CONTENT_LENGTH
+
+<?xml version='1.0' encoding='UTF-8' standalone='no' ?>
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"
+                   xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ns1="http://aggregate.geni.net/services/api/">
+    <SOAP-ENV:Body>
+        <setup xmlns="http://maxgigapop.net/versans/nps/api/">
+            <transactionId>trans-12342</transactionId>
+            <description>test</description>
+            <serviceContract id="svc-aws-a002" type="aws-layer3">
+                <providerSTP id="urn:ogf:network:domain=sdnx.maxgigapop.net:node=MAX:port=fe-0/2/1">
+                    <interfaceRef>customer-A-source</interfaceRef>
+                    <layer2Info>
+                        <outerVlanTag>101</outerVlanTag>
+                    </layer2Info>
+                    <layer3Info>
+                        <bgpInfo>
+                            <linkLocalIpAndMask>140.173.21.1/30</linkLocalIpAndMask>
+                            <linkRemoteIpAndMask>140.173.21.2/30</linkRemoteIpAndMask>
+                            <peerASN>65101</peerASN>
+                            <peerIpPrefix>140.173.21.128/26</peerIpPrefix>
+                            <peerIpPrefix>140.173.21.232/32</peerIpPrefix>
+                        </bgpInfo>
+                    </layer3Info>
+                </providerSTP>
+                <customerSTP id="urn:ogf:network:domain=sdnx.maxgigapop.net:node=MAX:port=fe-0/2/3">
+                    <interfaceRef>customer-A-source</interfaceRef>
+                    <layer2Info>
+                        <outerVlanTag>103</outerVlanTag>            
+                    </layer2Info>
+                    <layer3Info>
+                        <bgpInfo>
+                            <linkRemoteIpAndMask>140.173.23.2/30</linkRemoteIpAndMask>
+                            <peerASN>65103</peerASN>
+                            <peerIpPrefix>140.173.23.232/32</peerIpPrefix>
+                        </bgpInfo>
+                    </layer3Info>
+                </customerSTP>
+                <policyData>
+                    <subject>provider</subject>
+                    <resourceRef type="network">all</resourceRef>
+                    <action>limit</action>
+                    <constraintType>bandwidth</constraintType>
+                    <constraintValue>200Mbps</constraintValue>
+                </policyData>
+            </serviceContract>
+        </setup>
+    </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>

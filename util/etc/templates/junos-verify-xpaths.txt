@@ -1,0 +1,10 @@
+---
+
+EXIST: "//bgp-peer/peer-address[starts-with(.,'${bgp_p.peer_address}')]"
+
+ACTIVE: "//bgp-peer[peer-address[starts-with(.,'${bgp_p.peer_address}')] and peer-state='Established']"
+
+INSETUP: 
+
+FAILED: 
+

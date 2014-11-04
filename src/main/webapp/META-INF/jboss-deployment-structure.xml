@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jboss-deployment-structure xmlns="urn:jboss:deployment-structure:1.1">
+<!--
+    <deployment>
+        <dependencies>
+            <module name="deployment.javaee.api" />
+        </dependencies>
+        <exclusions>
+    	    <module name="org.slf4j" />
+            <module name="javaee.api" />
+	        <module name="org.apache.santuario.xmlsec" />
+        </exclusions>
+    </deployment>
+    <module name="deployment.javaee.api">
+        <dependencies>
+            <module name="javaee.api" export="true">
+                <imports>
+                    <exclude path="org/apache/xml/security/**" />
+                    <exclude path="org/apache/xs/security/**" />
+                </imports>
+            </module>
+        </dependencies>
+    </module>
+-->
+</jboss-deployment-structure>

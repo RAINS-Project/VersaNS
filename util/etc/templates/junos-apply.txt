@@ -1,0 +1,297 @@
+<junoscript version="1.0" release="9.4">
+
+<rpc><lock-configuration /></rpc>
+
+<rpc>
+<load-configuration>
+<configuration>
+
+<#-- support logical system -->
+<#if logical_system != "">
+<logical-systems>
+    <name>${logical_system}</name>
+</#if>
+
+<#-- layer2 interface for provider -->
+    <interfaces>
+        <interface>
+            <name>${ifce_p.name}</name>
+            <unit>
+                <name>${ifce_p.vlan}</name>
+                <description>${ifce_p.description}</description>
+                <vlan-id>${ifce_p.vlan}</vlan-id>
+                <family>
+                    <inet>
+                        <mtu>${ifce_p.mtu}</mtu>
+                        <address>${ifce_p.address}</address>
+<#if has_bw_policer>
+                        <filter>
+                            <input>${filters_p.input.name}</input>
+                            <output>${filters_p.output.name}</output>
+                        </filter>
+</#if>
+                    </inet>
+                </family>
+            </unit>
+        </interface>
+<#if has_customer_config>
+        <interface>
+            <name>${ifce_c.name}</name>
+            <unit>
+                <name>${ifce_c.vlan}</name>
+                <family>
+                    <inet>
+                        <filter>
+                            <input>${filters_c.input.name}</input>
+                        </filter>
+                    </inet>
+                </family>
+            </unit>
+        </interface>
+</#if>
+    </interfaces>
+
+<#-- policy options for provider and customer -->
+    <policy-options>
+<#-- use preconfigured default provider prefix list (MAX)
+        <prefix-list>
+            <name>${policies_p.prefix_list_name}</name>
+<#list policies_p.prefix_list_items as prefix>
+            <prefix-list-item>${prefix}</prefix-list-item>
+</#list>
+       </prefix-list>
+-->
+
+<#if !policies_c.prefix_list_existed>
+        <prefix-list>
+            <name>${policies_c.prefix_list_name}</name>
+<#list policies_c.prefix_list_items as prefix>
+            <prefix-list-item>${prefix}</prefix-list-item>
+</#list>
+        </prefix-list>
+</#if>
+<#-- share common provider policy based on a default(MAX) logical connection BGP
+        <policy-statement>
+            <name>${policies_p.policy_name}</name>
+            <term>
+                <name>match-provider-prefixes</name>
+                <from>
+                    <protocol>
+                        <name>bgp</name>
+                    </protocol>
+                    <neighbor>${bgp_p.peer_address}</neighbor>
+                    <prefix-list>${policies_p.prefix_list_name}</prefix-list>
+                </from>
+                <then>
+                    <accept/>
+                </then>
+            </term>
+        </policy-statement>
+-->
+        <policy-statement>
+            <name>${policies_c.policy_name}</name>
+            <term>
+                <name>match-customer-prefixes</name>
+                <from>
+                    <protocol>
+                        <name>bgp</name>
+                    </protocol>
+                    <neighbor>${bgp_c.peer_address}</neighbor>
+                    <prefix-list>${policies_c.prefix_list_name}</prefix-list>
+                </from>
+                <then>
+                    <accept/>
+                </then>
+            </term>
+        </policy-statement>
+        <policy-statement>
+            <name>${bgp_p.reject_policy_name}</name>
+            <then>
+               <reject/>
+            </then>
+        </policy-statement>
+    </policy-options>
+
+<#-- bgp configs for provider and customer -->
+    <protocols>
+        <bgp>
+            <group>
+                <name>${bgp_p.group_name}</name>
+                <type>external</type>
+                <family>
+                    <inet>
+                        <any/>
+                    </inet>
+                </family>
+                <neighbor>
+                    <name>${bgp_p.peer_address}</name>
+                    <local-address>${bgp_p.local_address}</local-address>
+                    <peer-as>${bgp_p.peer_asn}</peer-as>
+                    <export>
+                        <name>${bgp_p.reject_policy_name}</name>
+                    </export>
+                    <export insert="before" name="${bgp_p.reject_policy_name}">
+                        <name>${policies_c.policy_name}</name>
+                    </export>
+                </neighbor>
+            </group>
+<#if has_customer_config>
+            <group>
+                <name>${bgp_c.group_name}</name>
+                <type>external</type>
+                <family>
+                    <inet>
+                        <any/>
+                    </inet>
+                </family>
+                <neighbor>
+                    <name>${bgp_c.peer_address}</name>
+                    <export insert="before" name="${bgp_c.reject_policy_name}">
+                        <name>${policies_p.policy_name}</name>
+                    </export>
+                </neighbor>
+            </group>
+</#if>
+        </bgp>
+    </protocols>
+
+<#-- routing-instances for customer differentiated static routing -->
+    <routing-instances>
+        <instance>
+            <name>${routing_instance.name}</name>
+            <instance-type>forwarding</instance-type>
+            <routing-options>
+                <static> 
+<#list policies_p.prefix_list_items as prefix>
+                    <route>
+                        <name>${prefix}</name>
+                        <next-hop>${bgp_p.peer_address}</next-hop>
+                        <retain/>
+                    </route>
+</#list>
+                </static> 
+            </routing-options>
+        </instance>
+    </routing-instances>
+
+<#-- import routing-instances into rib-group in routing-options -->
+    <routing-options>
+        <interface-routes>
+            <rib-group>
+                <inet>AWS-rib-group</inet>
+            </rib-group>
+        </interface-routes>
+        <rib-groups>
+            <name>AWS-rib-group</name>
+            <import-rib>
+                <name>inet.0</name>
+            </import-rib>
+            <import-rib insert="before" name="inet.0">
+                <name>${routing_instance.name}.inet.0</name>
+            </import-rib>
+        </rib-groups>
+    </routing-options>
+
+
+<#-- firewall filters and policer configs for bandwidth limit -->
+    <firewall>
+<#if has_bw_policer>
+        <policer>
+            <name>${policer.name}</name>
+            <if-exceeding>
+                <bandwidth-limit>${policer.bandwidth_limit}</bandwidth-limit>
+                <burst-size-limit>${policer.burst_size_limit}</burst-size-limit>
+            </if-exceeding>
+            <then>
+                <discard/>
+            </then>
+        </policer>
+        <filter>
+            <name>${filters_p.input.name}</name>
+            <term>
+                <name>match-provider-prefixes</name>
+                <from>
+                    <source-prefix-list>
+                        <name>${policies_p.prefix_list_name}</name>
+                    </source-prefix-list>
+                    <source-address>
+                        <name>${bgp_p.peer_address}</name>
+                    </source-address>
+                </from>
+                <then>
+                    <policer>${policer.name}</policer>
+                    <accept/>
+                </then>
+            </term>
+            <term>
+                <name>reject-exceeding</name>
+                <then>
+                    <accept/>
+                </then>
+            </term>
+        </filter>
+        <filter>
+            <name>${filters_p.output.name}</name>
+            <term>
+                <name>match-customer-prefixes</name>
+                <from>
+                    <source-prefix-list>
+                        <name>${policies_c.prefix_list_name}</name>
+                    </source-prefix-list>
+                    <source-address>
+                        <name>${bgp_p.local_address}</name>
+                    </source-address>
+                </from>
+                <then>
+                    <policer>${policer.name}</policer>
+                    <accept/>
+                </then>
+            </term>
+            <term>
+                <name>reject-exceeding</name>
+                <then>
+                    <reject/>
+                </then>
+            </term>
+        </filter>
+</#if>
+<#if has_customer_config>
+        <filter>
+            <name>${filters_c.input.name}</name>
+            <term>
+                <name>accept-all</name>
+                <then>
+                    <accept/>
+                </then>
+            </term>
+            <term>
+                <name>${filters_c.input.term}</name>
+                <from>
+                    <source-prefix-list>
+                        <name>${policies_c.prefix_list_name}</name>
+                    </source-prefix-list>
+                </from>
+                <then>
+                    <routing-instance>${routing_instance.name}</routing-instance>
+                </then>
+            </term>
+        </filter>
+        <filter>
+            <name>${filters_c.input.name}</name>
+            <term insert="before" name="accept-all">
+                <name>${filters_c.input.term}</name>
+            </term>
+        </filter>
+</#if>
+    </firewall>
+
+<#if logical_system != "">
+</logical-systems>
+</#if>
+
+</configuration>
+</load-configuration>
+</rpc>
+<rpc><commit-configuration /></rpc>
+<rpc><unlock-configuration /></rpc>
+</junoscript>

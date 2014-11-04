@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions targetNamespace="http://maxgigapop.net/versans/nps/api/" xmlns="http://schemas.xmlsoap.org/wsdl/" xmlns:tns="http://maxgigapop.net/versans/nps/api/" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap12/">
+  <types>
+    <xs:schema elementFormDefault="qualified" targetNamespace="http://maxgigapop.net/versans/nps/api/" xmlns:tns="http://maxgigapop.net/versans/nps/api/" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <xs:annotation>
+                <xs:documentation xml:lang="en">
+                    MSX Network Driver API 0.1
+                </xs:documentation>
+            </xs:annotation>
+
+            <xs:include schemaLocation="network-api-0.1.xsd"/>
+        </xs:schema>
+  </types>
+  <message name="modifyRequestMsg">
+    <part name="modifyMsgReq" element="tns:modify">
+    </part>
+  </message>
+  <message name="teardownResponseMsg">
+    <part name="teardownMsgResp" element="tns:teardownResponse">
+    </part>
+  </message>
+  <message name="queryResponseMsg">
+    <part name="queryMsgResp" element="tns:queryResponse">
+    </part>
+  </message>
+  <message name="teardownRequestMsg">
+    <part name="teardownMsgReq" element="tns:teardown">
+    </part>
+  </message>
+  <message name="queryRequestMsg">
+    <part name="queryMsgReq" element="tns:query">
+    </part>
+  </message>
+  <message name="setupResponseMsg">
+    <part name="setupMsgResp" element="tns:setupResponse">
+    </part>
+  </message>
+  <message name="setupRequestMsg">
+    <part name="setupMsgReq" element="tns:setup">
+    </part>
+  </message>
+  <message name="serviceException">
+    <part name="fault" element="tns:serviceExceptionContent">
+    </part>
+  </message>
+  <message name="modifyResponseMsg">
+    <part name="modifyMsgResp" element="tns:modifyResponse">
+    </part>
+  </message>
+  <portType name="NPServicePortType">
+    <operation name="setup">
+      <input message="tns:setupRequestMsg">
+    </input>
+      <output message="tns:setupResponseMsg">
+    </output>
+      <fault name="serviceFault" message="tns:serviceException">
+    </fault>
+    </operation>
+    <operation name="teardown">
+      <input message="tns:teardownRequestMsg">
+    </input>
+      <output message="tns:teardownResponseMsg">
+    </output>
+      <fault name="serviceFault" message="tns:serviceException">
+    </fault>
+    </operation>
+    <operation name="query">
+      <input message="tns:queryRequestMsg">
+    </input>
+      <output message="tns:queryResponseMsg">
+    </output>
+      <fault name="serviceFault" message="tns:serviceException">
+    </fault>
+    </operation>
+    <operation name="modify">
+      <input message="tns:modifyRequestMsg">
+    </input>
+      <output message="tns:modifyResponseMsg">
+    </output>
+      <fault name="serviceFault" message="tns:serviceException">
+    </fault>
+    </operation>
+  </portType>
+  <binding name="NPServiceBinding" type="tns:NPServicePortType">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <operation name="setup">
+      <soap:operation soapAction="setup"/>
+      <input>
+        <soap:body use="literal"/>
+      </input>
+      <output>
+        <soap:body use="literal"/>
+      </output>
+      <fault name="serviceFault">
+        <soap:fault name="serviceFault" use="literal"/>
+      </fault>
+    </operation>
+    <operation name="teardown">
+      <soap:operation soapAction="teardown"/>
+      <input>
+        <soap:body use="literal"/>
+      </input>
+      <output>
+        <soap:body use="literal"/>
+      </output>
+      <fault name="serviceFault">
+        <soap:fault name="serviceFault" use="literal"/>
+      </fault>
+    </operation>
+    <operation name="query">
+      <soap:operation soapAction="query"/>
+      <input>
+        <soap:body use="literal"/>
+      </input>
+      <output>
+        <soap:body use="literal"/>
+      </output>
+      <fault name="serviceFault">
+        <soap:fault name="serviceFault" use="literal"/>
+      </fault>
+    </operation>
+    <operation name="modify">
+      <soap:operation soapAction="mofidy"/>
+      <input>
+        <soap:body use="literal"/>
+      </input>
+      <output>
+        <soap:body use="literal"/>
+      </output>
+      <fault name="serviceFault">
+        <soap:fault name="serviceFault" use="literal"/>
+      </fault>
+    </operation>
+  </binding>
+  <service name="NPService">
+    <port name="NPServicePort" binding="tns:NPServiceBinding">
+      <soap:address location="http://localhost:8080/NPService/services/NPService"/>
+    </port>
+  </service>
+</definitions>

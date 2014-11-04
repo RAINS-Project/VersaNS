@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:tns="http://maxgigapop.net/versans/nps/api/" attributeFormDefault="unqualified" elementFormDefault="qualified" targetNamespace="http://maxgigapop.net/versans/nps/api/">
+    <xs:element name="setup" type="tns:setupContent"/>
+    <xs:element name="setupResponse" type="tns:setupResponseContent"/>
+    <xs:element name="teardown" type="tns:teardownContent"/>
+    <xs:element name="teardownResponse" type="tns:teardownResponseContent"/>
+    <xs:element name="query" type="tns:queryContent"/>
+    <xs:element name="queryResponse" type="tns:queryResponseContent"/>
+    <xs:element name="modify" type="tns:modifyContent"/>
+    <xs:element name="modifyResponse" type="tns:modifyResponseContent"/>
+    <xs:element name="serviceExceptionContent">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="message" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:complexType name="setupContent">
+        <xs:sequence>
+            <xs:element name="transactionId" type="xs:string"/>
+            <xs:element name="description" type="xs:string"/>
+            <xs:element name="serviceContract" type="tns:serviceContract"/>
+        </xs:sequence>
+    </xs:complexType>
+    <xs:complexType name="setupResponseContent">
+        <xs:sequence>
+            <xs:element name="transactionId" type="xs:string"/>
+            <xs:element name="status" type="xs:string"/>
+            <xs:element minOccurs="0" name="message" type="xs:string"/>
+        </xs:sequence>
+    </xs:complexType>
+    <xs:complexType name="teardownContent">
+        <xs:sequence>
+            <xs:element name="transactionId" type="xs:string"/>
+            <xs:element name="contractId" type="xs:string"/>
+        </xs:sequence>
+    </xs:complexType>
+    <xs:complexType name="teardownResponseContent">
+        <xs:sequence>
+            <xs:element name="transactionId" type="xs:string"/>
+            <xs:element name="status" type="xs:string"/>
+            <xs:element minOccurs="0" name="message" type="xs:string"/>
+        </xs:sequence>
+    </xs:complexType>
+    <xs:complexType name="queryContent">
+        <xs:sequence>
+            <xs:element name="transactionId" type="xs:string"/>
+            <xs:element name="contractId" type="xs:string"/>
+        </xs:sequence>
+    </xs:complexType>
+    <xs:complexType name="queryResponseContent">
+        <xs:sequence>
+            <xs:element name="transactionId" type="xs:string"/>
+            <xs:element name="status" type="xs:string"/>
+            <xs:element minOccurs="0" name="message" type="xs:string"/>
+        </xs:sequence>
+    </xs:complexType>
+    <xs:complexType name="modifyContent">
+        <xs:sequence>
+            <xs:element name="transactionId" type="xs:string"/>
+            <xs:element name="description" type="xs:string"/>
+            <xs:element name="serviceContract" type="tns:serviceContract"/>
+        </xs:sequence>
+    </xs:complexType>
+    <xs:complexType name="modifyResponseContent">
+        <xs:sequence>
+            <xs:element name="transactionId" type="xs:string"/>
+            <xs:element name="status" type="xs:string"/>
+            <xs:element minOccurs="0" name="message" type="xs:string"/>
+        </xs:sequence>
+    </xs:complexType>
+    <xs:complexType name="serviceContract">
+        <xs:sequence>
+            <xs:element minOccurs="0" name="providerSTP" type="tns:serviceTerminationPoint"/>
+            <xs:element maxOccurs="unbounded" name="customerSTP" type="tns:serviceTerminationPoint"/>
+            <xs:element maxOccurs="unbounded" minOccurs="0" name="policyData" type="tns:servicePolicy"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="type" type="xs:string" use="required"/>
+    </xs:complexType>
+    <xs:complexType name="serviceTerminationPoint">
+        <xs:sequence>
+            <xs:element name="interfaceRef" type="xs:string"/>
+            <xs:element minOccurs="0" name="layer2Info" type="tns:layer2Info"/>
+            <xs:element minOccurs="0" name="layer3Info" type="tns:layer3Info"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+    <xs:complexType name="layer2Info">
+        <xs:sequence>
+            <xs:element minOccurs="0" name="outerVlanTag" type="tns:vlanTag"/>
+            <xs:element minOccurs="0" name="innerVlanTag" type="tns:vlanTag"/>
+            <xs:element minOccurs="0" name="mtu" type="xs:string"/>
+        </xs:sequence>
+    </xs:complexType>
+    <xs:complexType name="vlanTag">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="tagged" type="xs:boolean" use="optional"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+    <xs:complexType name="layer3Info">
+        <xs:sequence>
+            <xs:element name="bgpInfo" type="tns:bgpInfo"/>
+        </xs:sequence>
+    </xs:complexType>
+    <xs:complexType name="bgpInfo">
+        <xs:sequence>
+            <xs:element minOccurs="0" name="groupName" type="xs:string"/>
+            <xs:element minOccurs="0" name="linkLocalIpAndMask" type="xs:string"/>
+            <xs:element minOccurs="0" name="linkRemoteIpAndMask" type="xs:string"/>
+            <xs:element minOccurs="0" name="peerASN" type="xs:string"/>
+            <xs:element minOccurs="0" name="peerPrefixListName" type="xs:string"/>
+            <xs:element maxOccurs="unbounded" minOccurs="0" name="peerIpPrefix" type="xs:string"/>
+        </xs:sequence>
+    </xs:complexType>
+    <xs:complexType name="servicePolicy">
+        <xs:sequence>
+            <xs:element minOccurs="0" name="subject" type="xs:string"/>
+            <xs:element maxOccurs="unbounded" minOccurs="0" name="resourceRef" type="tns:resourceReference"/>
+            <xs:element name="action" type="xs:string"/>
+            <xs:element name="constraintType" type="xs:string"/>
+            <xs:element name="constraintValue" type="xs:string"/>
+        </xs:sequence>
+    </xs:complexType>
+    <xs:complexType name="resourceReference">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="type" type="xs:string" use="required"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+</xs:schema>

@@ -1,0 +1,115 @@
+<junoscript version="1.0" release="9.4">
+
+<rpc><lock-configuration /></rpc>
+
+<rpc>
+<load-configuration>
+<configuration>
+
+<#-- support logical system -->
+<#if logical_system != "">
+<logical-systems>
+    <name>${logical_system}</name>
+</#if>
+
+<#-- delete layer2 interface for provider  -->
+<#-- also delete filter from customer interface  -->
+    <interfaces>
+        <interface>
+            <name>${ifce_p.name}</name>
+            <unit delete="delete">
+                <name>${ifce_p.vlan}</name>
+            </unit>
+        </interface>
+    </interfaces>
+
+<#-- policy options for provider and customer -->
+    <policy-options>
+<#if !policies_c.prefix_list_existed>
+        <prefix-list delete="delete">
+            <name>${policies_c.prefix_list_name}</name>
+        </prefix-list>
+</#if>
+        <policy-statement delete="delete">
+            <name>${policies_c.policy_name}</name>
+        </policy-statement>
+    </policy-options>
+
+<#-- bgp configs for provider and customer -->
+    <protocols>
+        <bgp>
+            <group>
+                <name>${bgp_p.group_name}</name>
+                <neighbor>
+                    <name>${bgp_p.peer_address}</name>
+                    <export delete="delete">
+                        <name>${policies_c.policy_name}</name>
+                    </export>
+                </neighbor>
+            </group>
+<#-- not to delete provider prefix list as the neighbor may have multiple customers
+<#if has_customer_config>
+            <group>
+                <name>${bgp_c.group_name}</name>
+                <neighbor>
+                    <name>${bgp_c.peer_address}</name>
+                    <export delete="delete">
+                        <name>${policies_p.policy_name}</name>
+                    </export>
+                </neighbor>
+            </group>
+</#if>
+-->
+        </bgp>
+    </protocols>
+
+<#-- routing-instances for customer differentiated static routing -->
+    <routing-instances>
+        <instance delete="delete">
+            <name>${routing_instance.name}</name>
+        </instance>
+    </routing-instances>
+
+<#-- routing-instance in rib-group in routing-options -->
+    <routing-options>
+        <rib-groups>
+            <name>AWS-rib-group</name>
+            <import-rib delete="delete">
+                <name>${routing_instance.name}.inet.0</name>
+            </import-rib>
+        </rib-groups>
+    </routing-options>
+
+<#-- firewall filters and policer configs for bandwidth limit -->
+    <firewall>
+<#if has_bw_policer>
+        <policer delete="delete">
+            <name>${policer.name}</name>
+        </policer>
+        <filter delete="delete">
+            <name>${filters_p.input.name}</name>
+        </filter>
+        <filter delete="delete">
+            <name>${filters_p.output.name}</name>
+        </filter>
+</#if>
+<#if has_customer_config>
+        <filter>
+            <name>${filters_c.input.name}</name>
+            <term delete="delete">
+                <name>${filters_c.input.term}</name>
+            </term>
+        </filter>
+</#if>
+    </firewall>
+
+<#if logical_system != "">
+</logical-systems>
+</#if>
+
+</configuration>
+</load-configuration>
+</rpc>
+<rpc><commit-configuration /></rpc>
+<rpc><unlock-configuration /></rpc>
+</junoscript>

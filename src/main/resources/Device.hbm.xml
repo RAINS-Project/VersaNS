@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN" "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+<hibernate-mapping>
+  <class name="net.maxgigapop.versans.nps.device.Device" table="devices">
+    <id column="id" name="id">
+      <generator class="increment"/>
+    </id>
+    <property column="urn" name="urn"/>
+    <property column="model" name="model"/>
+    <property column="address" name="address"/>
+    <property column="location" name="location"/>
+    <property column="description" name="description"/>
+  </class>
+  <class name="net.maxgigapop.versans.nps.device.Interface" table="interfaces">
+    <id column="id" name="id">
+      <generator class="increment"/>
+    </id>
+    <property column="urn" name="urn"/>
+    <property column="model" name="model"/>
+    <property column="deviceId" name="deviceId"/>
+    <property column="description" name="description"/>
+  </class>
+  <class name="net.maxgigapop.versans.nps.device.DeviceDelta" table="deviceDeltas">
+    <id column="id" name="id">
+      <generator class="increment"/>
+    </id>
+    <property column="deviceId" name="deviceId"/>
+    <property column="contractId" name="contractId"/>
+    <property column="cmdToApply" name="cmdToApply"/>
+    <property column="cmdToDelete" name="cmdToDelete"/>
+    <property column="cmdToVerify" name="cmdToVerify"/>
+    <property column="xpathVerifyExpr" name="xpathVerifyExpr"/>
+    <property name="deleted" not-null="true">
+      <column name="deleted" not-null="true" sql-type="BOOLEAN"/>
+    </property>
+  </class>
+  <class name="net.maxgigapop.versans.nps.device.InterfaceDelta" table="interfaceDeltas">
+    <id column="id" name="id">
+      <generator class="increment"/>
+    </id>
+    <property column="interfaceId" name="interfaceId"/>
+    <property column="deviceDeltaId" name="deviceDeltaId"/>
+    <property column="cmdToApply" name="cmdToApply"/>
+    <property column="cmdToDelete" name="cmdToDelete"/>
+    <property column="cmdToVerify" name="cmdToVerify"/>
+    <property column="xpathVerifyExpr" name="xpathVerifyExpr"/>
+    <property name="deleted" not-null="true">
+      <column name="deleted" not-null="true" sql-type="BOOLEAN"/>
+    </property>
+  </class>
+</hibernate-mapping>

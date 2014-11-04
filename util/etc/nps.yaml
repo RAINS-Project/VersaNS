@@ -1,0 +1,100 @@
+---
+dbUser: 'dragon'
+dbPass: 'flame'
+templateDir: '/etc/sdnx/nps/templates/'
+providerDefaultBgpGroup: 'AWS'
+customerDefaultBgpGroup: 'MEMBERS'
+devices:
+    MAX:
+        urn: 'urn:ogf:network:domain=sdnx.maxgigapop.net:node=MAX'
+        model: 'net.maxgigapop.versans.nps.device.RouterJUNOS'
+        address: 'lab-t640.maxgigapop.net'
+        description: device1
+        connector:
+            login: jetstream
+            password: 'jetdev2'
+            isstub: false
+            commandlog: true
+            logicalsystem: 'jetstream'
+            bgp_config_customer: true
+            bgp_reject_policy: 'REJECT'
+        interfaces:
+            interface1-1:
+                urn: 'urn:ogf:network:domain=sdnx.maxgigapop.net:node=MAX:port=fe-0/2/1'
+                description: interface1-1
+            interface1-2:
+                urn: 'urn:ogf:network:domain=sdnx.maxgigapop.net:node=MAX:port=fe-0/2/2'
+                description: interface1-2
+            interface1-3:
+                urn: 'urn:ogf:network:domain=sdnx.maxgigapop.net:node=MAX:port=fe-0/2/3'
+                description: interface1-3
+    MCLN:
+        urn: 'urn:ogf:network:domain=sdnx.maxgigapop.net:node=MCLN'
+        model: 'net.maxgigapop.versans.nps.device.RouterJUNOS'
+        address: 'mcln-t640.maxgigapop.net'
+        description: device2
+        connector:
+            login: jetstream
+            privkeyfile: /Users/xyang/.ssh/id_rsa2
+            passphrase: 'passphrase'
+            isstub: false
+            bgp_config_customer: true
+            bgp_reject_policy: 'REJECT'
+        interfaces:
+            interface2-1:
+                urn: 'urn:ogf:network:domain=sdnx.maxgigapop.net:node=MAX:port=xe-2/1/1'
+                description: interface2-1
+            interface2-2:
+                urn: 'urn:ogf:network:domain=sdnx.maxgigapop.net:node=MAX:port=xe-2/1/2'
+                description: interface2-2
+    DRAGON:
+        urn: 'urn:ogf:network:domain=sdnx.maxgigapop.net:node=DRAGON'
+        model: 'net.maxgigapop.versans.nps.device.OscarsDCN'
+        address: 'idc-new.maxgigapop.net'
+        description: 'DRAGON OSCARS DCN'
+        connector:
+            idc_url: 'https://idc-new.maxgigapop.net:9001/OSCARS'
+            client_command: 'java -Done-jar.verbose=false -Done-jar.info=false -Done-jar.main.class=net.es.oscars.api.client.SimpleOSCARSClient -jar /etc/sdnx/nps/oscars/SimpleOSCARSClient-0.0.1-SNAPSHOT.one-jar.jar -f -'
+            client_keystore: '/etc/sdnx/nps/oscars/oscars-client.jks'
+            client_keystore_password: 'password'
+            client_keystore_user: 'oscarsuser'
+            trust_keystore: '/etc/sdnx/nps/oscars/oscars-ssl.jks'
+            trust_keystore_password: 'oscars'
+        interfaces:
+            interface3-1:
+                urn: 'urn:ogf:network:domain=dragon.maxgigapop.net:node=MAX:port=1-0-8:link=*'
+                description: interface3-1
+            interface3-2:
+                urn: 'urn:ogf:network:domain=dragon.maxgigapop.net:node=MAX:port=1-0-9:link=*'
+                description: interface3-2
+            interface3-3:
+                urn: 'urn:ogf:network:domain=dragon.maxgigapop.net:node=CLPK:port=1-0-4:link=*'
+                description: interface3-3
+            interface3-4:
+                urn: 'urn:ogf:network:domain=dragon.maxgigapop.net:node=CLPK:port=1-2-3:link=*'
+                description: interface3-4
+    SDN:
+        urn: 'urn:ogf:network:domain=sdnx.maxgigapop.net:node=SDN'
+        model: 'net.maxgigapop.versans.nps.device.FloodlightSDN'
+        address: 'dev2.jetstream.maxgigapop.net'
+        description: 'OpenFlow SDN by FloodLight Controller'
+        connector:
+            controller_url: 'http://dev2.jetstream.maxgigapop.net:8080/'
+            dpid_map:
+                DEV2: '00:00:00:00:00:00:00:01'
+                MAX: '00:00:00:00:00:00:00:01'
+                CLPK: '00:00:00:00:00:00:00:03'
+        interfaces:
+            interface4-1:
+                urn: 'urn:ogf:network:domain=sdn.maxgigapop.net:node=DEV2:port=1'
+                description: interface4-1
+            interface4-2:
+                urn: 'urn:ogf:network:domain=sdn.maxgigapop.net:node=DEV2:port=2'
+                description: interface4-2
+            interface4-3:
+                urn: 'urn:ogf:network:domain=sdn.maxgigapop.net:node=MAX:port=3'
+                description: interface4-3
+            interface4-4:
+                urn: 'urn:ogf:network:domain=sdn.maxgigapop.net:node=MAX:port=4'
+                description: interface4-4
+

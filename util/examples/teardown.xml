@@ -1,0 +1,20 @@
+POST /NPService/services/NPService/ HTTP/1.1
+User-Agent: wsdlpull/1.23
+Host: localhost:8080
+SOAPAction:
+"teardown"
+Content-Type: text/xml; charset=UTF-8
+Accept: text/xml;
+Content-Length: CONTENT_LENGTH
+
+<?xml version='1.0' encoding='UTF-8' standalone='no' ?>
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"
+                   xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ns1="http://aggregate.geni.net/services/api/">
+    <SOAP-ENV:Body>
+        <teardown xmlns="http://maxgigapop.net/versans/nps/api/">
+            <transactionId>trans-12343</transactionId>
+            <contractId>svc-asw-10001</contractId>
+        </teardown>
+    </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>

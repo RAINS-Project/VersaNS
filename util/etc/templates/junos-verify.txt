@@ -1,0 +1,11 @@
+<junoscript version="1.0" release="7.3">
+<rpc>
+  <get-bgp-neighbor-information> 
+<#-- support logical system -->
+<#if logical_system != "">
+    <logical-system>${logical_system}</logical-system>
+</#if>
+    <neighbor-address>${bgp_p.peer_address}</neighbor-address>
+  </get-bgp-neighbor-information>
+</rpc>
+</junoscript>

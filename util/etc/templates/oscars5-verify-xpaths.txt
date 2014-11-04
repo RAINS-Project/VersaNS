@@ -1,0 +1,10 @@
+---
+
+EXIST: "//QueryResReply/ResDetails[globalReservationId!='']"
+
+ACTIVE: "//QueryResReply/ResDetails[status='ACTIVE']"
+
+INSETUP: "//QueryResReply/ResDetails[status='INCREATE' or status='INSETUP']"
+
+FAILED: "//QueryResReply/ResDetails[status='FAILED' or status='UNKNOWN']"
+

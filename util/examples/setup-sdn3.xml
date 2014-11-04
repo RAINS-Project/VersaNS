@@ -1,0 +1,53 @@
+POST /services/NPService/ HTTP/1.1
+User-Agent: wsdlpull/1.23
+Host: localhost:8080
+SOAPAction:
+"setup"
+Content-Type: text/xml; charset=UTF-8
+Accept: text/xml;
+Content-Length: CONTENT_LENGTH
+
+<?xml version='1.0' encoding='UTF-8' standalone='no' ?>
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"
+                   xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ns1="http://aggregate.geni.net/services/api/">
+    <SOAP-ENV:Body>
+        <setup xmlns="http://maxgigapop.net/versans/nps/api/">
+            <transactionId>trans-12345</transactionId>
+            <description>test</description>
+            <serviceContract id="svc-sdn-10035" type="sdn-openflow">
+                <customerSTP id="urn:ogf:network:domain=sdn.maxgigapop.net:node=DEV2:port=1:link=*">
+                    <interfaceRef>customer-A-if1</interfaceRef>
+                    <layer2Info>
+                        <outerVlanTag>101</outerVlanTag>
+                    </layer2Info>
+                </customerSTP>
+                <customerSTP id="urn:ogf:network:domain=sdn.maxgigapop.net:node=DEV2:port=2:link=*">
+                    <interfaceRef>customer-A-if2</interfaceRef>
+                    <layer2Info>
+                        <outerVlanTag>102</outerVlanTag>
+                    </layer2Info>
+                </customerSTP>
+                <customerSTP id="urn:ogf:network:domain=sdn.maxgigapop.net:node=MAX:port=3:link=*">
+                    <interfaceRef>customer-A-if3</interfaceRef>
+                    <layer2Info>
+                        <outerVlanTag>104</outerVlanTag>
+                    </layer2Info>
+                </customerSTP>
+                <customerSTP id="urn:ogf:network:domain=sdn.maxgigapop.net:node=MAX:port=4:link=*">
+                    <interfaceRef>customer-A-if3</interfaceRef>
+                    <layer2Info>
+                        <outerVlanTag>104</outerVlanTag>
+                    </layer2Info>
+                </customerSTP>
+                <policyData>
+                    <subject>provider</subject>
+                    <resourceRef type="network">all</resourceRef>
+                    <action>limit</action>
+                    <constraintType>bandwidth</constraintType>
+                    <constraintValue>101Mbps</constraintValue>
+                </policyData>
+            </serviceContract>
+        </setup>
+    </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>

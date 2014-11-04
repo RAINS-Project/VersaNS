@@ -1,0 +1,10 @@
+---
+
+EXIST: "//queryReservationResponse/reservationDetails[globalReservationId!='']"
+
+ACTIVE: "//queryReservationResponse/reservationDetails[status='ACTIVE']"
+
+INSETUP: "//queryReservationResponse/reservationDetails[status='INCREATE' or status='INSETUP']"
+
+FAILED: "//queryReservationResponse/reservationDetails[status='FAILED' or status='UNKNOWN']"
+
