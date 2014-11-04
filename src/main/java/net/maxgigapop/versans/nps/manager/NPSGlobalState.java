@@ -135,6 +135,26 @@ public class NPSGlobalState {
                 + "deleted int(1) NOT NULL DEFAULT 0, "
                 + "PRIMARY KEY (id)"
                 + ") ENGINE=InnoDB DEFAULT CHARSET=latin1");
+        //init the models table
+        NPSUtils.executeDirectStatement("CREATE TABLE IF NOT EXISTS nps.models ( "
+                + "id int(11) NOT NULL auto_increment, "
+                + "createdTime DATETIME NOT NULL, "
+                + "version VARCHAR(255) NOT NULL, "
+                + "ttlModel LONGTEXT NOT NULL, "
+                + "status VARCHAR(255) NOT NULL, "
+                + "PRIMARY KEY (id, version)"
+                + ") ENGINE=InnoDB DEFAULT CHARSET=latin1");
+        //init the deltas table
+        NPSUtils.executeDirectStatement("CREATE TABLE IF NOT EXISTS nps.deltas ( "
+                + "id int(11) NOT NULL auto_increment, "
+                + "createdTime DATETIME NOT NULL, "
+                + "referenceVersion VARCHAR(255) NOT NULL, "
+                + "targetVersion VARCHAR(255) NOT NULL, "
+                + "modelAddition LONGTEXT NOT NULL, "
+                + "modelReduction LONGTEXT NOT NULL, "
+                + "status VARCHAR(255) NOT NULL, "
+                + "PRIMARY KEY (id, targetVersion)"
+                + ") ENGINE=InnoDB DEFAULT CHARSET=latin1");
     }
 
     public static NPSContractManager getContractManager() {

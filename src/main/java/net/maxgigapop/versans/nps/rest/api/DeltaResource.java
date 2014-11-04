@@ -36,35 +36,6 @@ public class DeltaResource {
      */
     public DeltaResource() {
     }
-
-    @PostConstruct 
-    public void init()  {
-    	if (NPSGlobalState.Inited)
-    		return;
-        try {
-            //init global status
-            NPSGlobalState.init();
-        } catch(Exception ex) {
-            ex.printStackTrace();
-            return;
-        }
-        //init contract manager
-        NPSContractManager contractManager = new NPSContractManager();
-        contractManager.start();
-        NPSGlobalState.setContractManager(contractManager);
-        //init topology manager 
-        TopologyManager topologyManager = new TopologyManager();
-        NPSGlobalState.setTopologyManager(topologyManager);
-        try {
-            topologyManager.initNetworkTopology();
-        } catch(Exception ex) {
-            ex.printStackTrace();
-            return;
-        }
-        //init policy manager
-        PolicyManager policyManager = new PolicyManager();
-        NPSGlobalState.setPolicyManager(policyManager);
-    }
     
     /**
      * Retrieves representation of an instance of net.maxgigapop.versans.nps.api.DeltaResource

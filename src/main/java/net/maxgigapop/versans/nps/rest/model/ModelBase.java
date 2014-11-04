@@ -6,6 +6,7 @@
 package net.maxgigapop.versans.nps.rest.model;
 
 import java.util.*;
+import javax.persistence.OneToOne;
 import javax.xml.bind.annotation.*;
 
 @XmlRootElement(name="model")
@@ -16,13 +17,15 @@ public class ModelBase {
     @XmlElement(required=true) 
     protected Date creationTime;
     @XmlElement(required=true) 
-    protected Long cxtVersion = 0L;
-    @XmlElement(required=true) 
-    protected String cxtVersionTag = "";
-    @XmlElement(required=true) 
-    protected boolean committed = false;
+    protected String version = "";
     @XmlElement(required=true) 
     protected String ttlModel = "";
+    @XmlElement(required=true) 
+    protected String status = "";
+
+    public Long getId() {
+        return id;
+    }
 
     public void setId(Long id) {
         this.id = id;
@@ -36,28 +39,12 @@ public class ModelBase {
         this.creationTime = creationTime;
     }
 
-    public String getCxtVersionTag() {
-        return cxtVersionTag;
-    }
-    
-    public Long getCxtVersion() {
-        return cxtVersion;
+    public String getVersion() {
+        return version;
     }
 
-    public void setCxtVersion(Long cxtVersion) {
-        this.cxtVersion = cxtVersion;
-    }
-
-    public void setCxtVersionTag(String cxtVersionTag) {
-        this.cxtVersionTag = cxtVersionTag;
-    }
-
-    public boolean isCommitted() {
-        return committed;
-    }
-
-    public void setCommitted(boolean committed) {
-        this.committed = committed;
+    public void setVersion(String version) {
+        this.version = version;
     }
 
     public String getTtlModel() {
@@ -66,6 +53,14 @@ public class ModelBase {
 
     public void setTtlModel(String ttlModel) {
         this.ttlModel = ttlModel;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 
     @Override

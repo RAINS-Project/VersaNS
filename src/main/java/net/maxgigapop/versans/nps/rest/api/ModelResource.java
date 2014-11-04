@@ -7,21 +7,15 @@ package net.maxgigapop.versans.nps.rest.api;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.PostConstruct;
-import javax.enterprise.context.ApplicationScoped;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
-import javax.ws.rs.PathParam;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.GET;
 import javax.ws.rs.Produces;
 import net.maxgigapop.versans.nps.api.ServiceException;
-import net.maxgigapop.versans.nps.manager.NPSContractManager;
 import net.maxgigapop.versans.nps.manager.NPSGlobalState;
-import net.maxgigapop.versans.nps.manager.PolicyManager;
-import net.maxgigapop.versans.nps.manager.TopologyManager;
 import net.maxgigapop.versans.nps.rest.model.ModelBase;
 
 /**
@@ -43,35 +37,6 @@ public class ModelResource {
     public ModelResource() {
     }
     
-    @PostConstruct 
-    public void init()  {
-    	if (NPSGlobalState.Inited)
-    		return;
-        try {
-            //init global status
-            NPSGlobalState.init();
-        } catch(Exception ex) {
-            ex.printStackTrace();
-            return;
-        }
-        //init contract manager
-        NPSContractManager contractManager = new NPSContractManager();
-        contractManager.start();
-        NPSGlobalState.setContractManager(contractManager);
-        //init topology manager 
-        TopologyManager topologyManager = new TopologyManager();
-        NPSGlobalState.setTopologyManager(topologyManager);
-        try {
-            topologyManager.initNetworkTopology();
-        } catch(Exception ex) {
-            ex.printStackTrace();
-            return;
-        }
-        //init policy manager
-        PolicyManager policyManager = new PolicyManager();
-        NPSGlobalState.setPolicyManager(policyManager);
-    }
-
     /**
      * Retrieves representation of an instance of net.maxgigapop.sdnx.services.nps.rest.api.ModelResource
      * @return an instance of net.maxgigapop.sdnx.services.nps.rest.model.ModelBase

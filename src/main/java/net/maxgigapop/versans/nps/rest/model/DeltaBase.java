@@ -5,11 +5,8 @@
  */
 package net.maxgigapop.versans.nps.rest.model;
 
-import java.sql.Date;
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
+import java.util.*;
+import javax.xml.bind.annotation.*;
 
 @XmlRootElement(name="delta")
 @XmlAccessorType(XmlAccessType.FIELD)
@@ -17,13 +14,17 @@ public class DeltaBase {
     @XmlElement(required=true) 
     protected Long id = 0L;
     @XmlElement(required=true) 
+    protected Date creationTime;
+    @XmlElement(required=true)
     protected String referenceVersion = "";
     @XmlElement(required=true) 
     protected String targetVersion = "";
     @XmlElement(required=true) 
-    protected ModelBase modelAddition = null;
+    protected String modelReduction = null;
     @XmlElement(required=true) 
-    protected ModelBase modelReduction = null;
+    protected String modelAddition = null;
+    @XmlElement(required=true) 
+    protected String status = "";
 
     public Long getId() {
         return id;
@@ -31,6 +32,30 @@ public class DeltaBase {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Date getCreationTime() {
+        return creationTime;
+    }
+
+    public void setCreationTime(Date creationTime) {
+        this.creationTime = creationTime;
+    }
+
+    public String getModelAddition() {
+        return modelAddition;
+    }
+
+    public void setModelAddition(String modelAddition) {
+        this.modelAddition = modelAddition;
+    }
+
+    public String getModelReduction() {
+        return modelReduction;
+    }
+
+    public void setModelReduction(String modelReduction) {
+        this.modelReduction = modelReduction;
     }
 
     public String getReferenceVersion() {
@@ -49,20 +74,12 @@ public class DeltaBase {
         this.targetVersion = targetVersion;
     }
 
-    public ModelBase getModelAddition() {
-        return modelAddition;
+    public String getStatus() {
+        return status;
     }
 
-    public void setModelAddition(ModelBase modelAddition) {
-        this.modelAddition = modelAddition;
-    }
-
-    public ModelBase getModelReduction() {
-        return modelReduction;
-    }
-
-    public void setModelReduction(ModelBase modelReduction) {
-        this.modelReduction = modelReduction;
+    public void setStatus(String status) {
+        this.status = status;
     }
 
     @Override
