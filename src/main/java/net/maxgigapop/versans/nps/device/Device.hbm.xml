@@ -21,6 +21,7 @@
 		<property column="model" name="model" />
 		<property column="deviceId" name="deviceId" />
 		<property column="description" name="description" />
+		<property column="aliasUrn" name="aliasUrn" />
 	</class>
 	<class name="net.maxgigapop.versans.nps.device.DeviceDelta"
 		table="deviceDeltas">

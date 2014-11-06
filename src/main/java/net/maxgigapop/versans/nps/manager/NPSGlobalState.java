@@ -106,6 +106,7 @@ public class NPSGlobalState {
                 + "model VARCHAR(255) NOT NULL, "
                 + "deviceId int(11) NOT NULL, "
                 + "description VARCHAR(255) NOT NULL, "
+                + "aliasUrn VARCHAR(255) NOT NULL, "
                 + "PRIMARY KEY (id)"
                 + ") ENGINE=InnoDB DEFAULT CHARSET=latin1");
         //init the contracts table

@@ -106,6 +106,9 @@ public class TopologyManager {
                 String ifDescr = (String)intfCfg.get("description");
                 if (ifDescr != null)
                     intf.setDescription(ifDescr);
+                String aliasUrn = (String)intfCfg.get("aliasurn");
+                if (aliasUrn != null)
+                    intf.setAliasUrn(aliasUrn);
                 intf.setDeviceId(device.getId());
                 intf.setModel("Generic");
                 if (isNewIf) {

@@ -14,6 +14,7 @@ public class Interface implements java.io.Serializable  {
     String model = "";
     int deviceId = 0;
     String description = "";
+    String aliasUrn = "";
     Device parentDevice = null;
 
     public Interface() {}
@@ -56,6 +57,14 @@ public class Interface implements java.io.Serializable  {
 
     public void setUrn(String urn) {
         this.urn = urn;
+    }
+
+    public String getAliasUrn() {
+        return aliasUrn;
+    }
+
+    public void setAliasUrn(String aliasUrn) {
+        this.aliasUrn = aliasUrn;
     }
 
     public Device getParentDevice() {
