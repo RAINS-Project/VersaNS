@@ -46,7 +46,7 @@ public class ModelResource {
      */
     @GET
     @Produces({"application/xml", "application/json"})
-    public ModelBase pull() {
+    public ModelBase pull() throws NotFoundException {
         ModelBase model = NPSGlobalState.getModelStore().getHead();
         if (model == null)
             throw new NotFoundException("None!");     

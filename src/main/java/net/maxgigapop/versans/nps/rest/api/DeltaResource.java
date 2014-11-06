@@ -46,7 +46,7 @@ public class DeltaResource {
     @GET
     @Produces({"application/xml", "application/json"})
     @Path("{targetVersion}")
-    public String query(@PathParam("targetVersion") String targetVersion) {
+    public String query(@PathParam("targetVersion") String targetVersion) throws NotFoundException {
         DeltaBase delta = NPSGlobalState.getDeltaStore().getByTargetVersion(targetVersion);
         if (delta == null)
             throw new NotFoundException(String.format("Unknown targetVersion='%s'", targetVersion));
@@ -76,7 +76,7 @@ public class DeltaResource {
     @PUT
     @Consumes({"application/xml", "application/json"})
     @Path("{targetVersion}")
-    public String commit(@PathParam("targetVersion") String targetVersion) {
+    public String commit(@PathParam("targetVersion") String targetVersion) throws NotFoundException {
         DeltaBase delta = NPSGlobalState.getDeltaStore().getByTargetVersion(targetVersion);
         if (delta == null)
             throw new NotFoundException(String.format("Unknown targetVersion='%s'", targetVersion));
