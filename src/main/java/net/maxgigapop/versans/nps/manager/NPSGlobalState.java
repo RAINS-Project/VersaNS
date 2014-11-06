@@ -12,6 +12,8 @@ import net.maxgigapop.versans.nps.config.NPSGlobalConfig;
 import net.maxgigapop.versans.nps.config.ConfigException;
 import net.maxgigapop.versans.nps.config.NPSConfigYaml;
 import net.maxgigapop.versans.nps.api.ServiceException;
+import net.maxgigapop.versans.nps.rest.model.ModelStore;
+import net.maxgigapop.versans.nps.rest.model.DeltaStore;
 
 /**
  *
@@ -33,6 +35,8 @@ public class NPSGlobalState {
     private static InterfaceStore interfaceStore = null;
     private static DeviceDeltaStore deviceDeltaStore = null;
     private static InterfaceDeltaStore interfaceDeltaStore = null;
+    private static ModelStore modelStore = null;
+    private static DeltaStore deltaStore = null;
 
     public static void init() throws ConfigException, ServiceException {
     	Inited = true;
@@ -72,6 +76,8 @@ public class NPSGlobalState {
         interfaceStore = new InterfaceStore();
         deviceDeltaStore = new DeviceDeltaStore();
         interfaceDeltaStore = new InterfaceDeltaStore();
+        modelStore = new ModelStore();
+        deltaStore = new DeltaStore();
     }
 
     private static void initDatabase() throws ServiceException {
@@ -267,5 +273,13 @@ public class NPSGlobalState {
 
     public static void setInterfaceStore(InterfaceStore interfaceStore) {
         NPSGlobalState.interfaceStore = interfaceStore;
+    }
+
+    public static ModelStore getModelStore() {
+        return modelStore;
+    }
+
+    public static DeltaStore getDeltaStore() {
+        return deltaStore;
     }
 }

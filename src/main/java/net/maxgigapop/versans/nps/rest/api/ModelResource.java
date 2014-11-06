@@ -13,6 +13,9 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.GET;
+import javax.ws.rs.NotFoundException;
+import javax.ws.rs.POST;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import net.maxgigapop.versans.nps.api.ServiceException;
 import net.maxgigapop.versans.nps.manager.NPSGlobalState;
@@ -38,30 +41,38 @@ public class ModelResource {
     }
     
     /**
-     * Retrieves representation of an instance of net.maxgigapop.sdnx.services.nps.rest.api.ModelResource
-     * @return an instance of net.maxgigapop.sdnx.services.nps.rest.model.ModelBase
+     * Retrieves last version of Model
+     * @return an instance of net.maxgigapop.versans.nps.rest.model.ModelBase
      */
     @GET
     @Produces({"application/xml", "application/json"})
-    public ModelBase getXml() {
-        //TODO return proper representation object
-        ModelBase model = new ModelBase();
-        try {
-            NPSGlobalState.getContractManager().handleQuery("test-1");
-        } catch (ServiceException ex) {
-            Logger.getLogger(ModelResource.class.getName()).log(Level.SEVERE, null, ex);
-            model.setTtlModel(ex.getMessage());
-        }
+    public ModelBase pull() {
+        ModelBase model = NPSGlobalState.getModelStore().getHead();
+        if (model == null)
+            throw new NotFoundException("None!");     
         return model;
     }
 
     /**
-     * PUT method for updating or creating an instance of ModelResource
+     * Push a new version of Model
+     * @param an model instance
+     * @return an HTTP response with a status String.
+     */
+    @POST
+    @Consumes({"application/xml", "application/json"})
+    public String push(ModelBase model) {
+        throw new UnsupportedOperationException();
+    }
+
+    /**
+     * Commit the version of String being pushed
      * @param content representation for the resource
-     * @return an HTTP response with content of the updated or created resource.
+     * @return an HTTP response with a status String.
      */
     @PUT
     @Consumes({"application/xml", "application/json"})
-    public void putXml(ModelBase model) {
+    @Path("{version}")
+    public String commit(@PathParam("version") String version) {
+        throw new UnsupportedOperationException();
     }
 }

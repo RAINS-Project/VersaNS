@@ -13,6 +13,8 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.GET;
+import javax.ws.rs.NotFoundException;
+import javax.ws.rs.POST;
 import javax.ws.rs.Produces;
 import net.maxgigapop.versans.nps.manager.NPSContractManager;
 import net.maxgigapop.versans.nps.manager.NPSGlobalState;
@@ -43,18 +45,44 @@ public class DeltaResource {
      */
     @GET
     @Produces({"application/xml", "application/json"})
-    public DeltaBase getXml() {
-        DeltaBase delta = new DeltaBase();
-        return delta;
+    @Path("{targetVersion}")
+    public String query(@PathParam("targetVersion") String targetVersion) {
+        DeltaBase delta = NPSGlobalState.getDeltaStore().getByTargetVersion(targetVersion);
+        if (delta == null)
+            throw new NotFoundException(String.format("Unknown targetVersion='%s'", targetVersion));
+        return delta.getStatus();
     }
 
     /**
-     * PUT method for updating or creating an instance of DeltaResource
+     * Push a new version of Model
+     * @param an model instance
+     * @return an HTTP response with a status String.
+     */
+    @POST
+    @Consumes({"application/xml", "application/json"})
+    public String push(DeltaBase delta) {
+        NPSGlobalState.getDeltaStore().add(delta);
+        
+        //$$ TODO: execute push logic
+        
+       return delta.getStatus();
+    }
+
+    /**
+     * Commit the version of String being pushed
      * @param content representation for the resource
-     * @return an HTTP response with content of the updated or created resource.
+     * @return an HTTP response with a status String.
      */
     @PUT
     @Consumes({"application/xml", "application/json"})
-    public void putXml(DeltaBase content) {
+    @Path("{targetVersion}")
+    public String commit(@PathParam("targetVersion") String targetVersion) {
+        DeltaBase delta = NPSGlobalState.getDeltaStore().getByTargetVersion(targetVersion);
+        if (delta == null)
+            throw new NotFoundException(String.format("Unknown targetVersion='%s'", targetVersion));
+
+        //$$ TODO: execute commit logic
+        
+        return delta.getStatus();
     }
 }
