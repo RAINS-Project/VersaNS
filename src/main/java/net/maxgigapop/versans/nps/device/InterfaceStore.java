@@ -26,8 +26,8 @@ public class InterfaceStore {
 
     public synchronized boolean add(Interface n) {
         synchronized (this) {
-            if (n.getUrn().isEmpty() || n.getModel().isEmpty() || n.getDeviceId() == 0) {
-                throw new IllegalArgumentException("Interface object must have valid urn, model deviceId fields");
+            if (n.getUrn().isEmpty() || n.getMakeModel().isEmpty() || n.getDeviceId() == 0) {
+                throw new IllegalArgumentException("Interface object must have valid urn, makeModel deviceId fields");
             }
             try {
                 session = HibernateUtil.getSessionFactory().openSession();
@@ -50,8 +50,8 @@ public class InterfaceStore {
 
     public synchronized boolean update(Interface n) {
         synchronized (this) {
-            if (n.getUrn().isEmpty() || n.getModel().isEmpty() || n.getDeviceId() == 0) {
-                throw new IllegalArgumentException("Interface object must have valid urn, model deviceId fields");
+            if (n.getUrn().isEmpty() || n.getMakeModel().isEmpty() || n.getDeviceId() == 0) {
+                throw new IllegalArgumentException("Interface object must have valid urn, makeModel deviceId fields");
             }
             try {
                 session = HibernateUtil.getSessionFactory().openSession();
@@ -169,7 +169,7 @@ public class InterfaceStore {
     /**
      * get by device ID
      */
-    public synchronized Interface getByDeviceId(int deviceId) {
+    public synchronized List<Interface> getByDeviceId(int deviceId) {
         synchronized (this) {
             try {
                 session = HibernateUtil.getSessionFactory().openSession();
@@ -178,7 +178,7 @@ public class InterfaceStore {
                 if (q.list().size() == 0) {
                     return null;
                 }
-                return (Interface) q.list().get(0);
+                return (List<Interface>) q.list();
             } catch (Exception e) {
                 tx.rollback();
                 e.printStackTrace();
@@ -194,7 +194,7 @@ public class InterfaceStore {
     /**
      * get by device urn
      */
-    public synchronized Interface getByDeviceUrn(String deviceUrn) {
+    public synchronized List<Interface> getByDeviceUrn(String deviceUrn) {
         synchronized (this) {
             try {
                 session = HibernateUtil.getSessionFactory().openSession();
@@ -203,7 +203,7 @@ public class InterfaceStore {
                 if (q.list().size() == 0) {
                     return null;
                 }
-                return (Interface) q.list().get(0);
+                return (List<Interface>) q.list();
             } catch (Exception e) {
                 tx.rollback();
                 e.printStackTrace();

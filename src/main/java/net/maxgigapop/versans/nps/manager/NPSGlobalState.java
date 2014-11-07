@@ -93,7 +93,7 @@ public class NPSGlobalState {
         NPSUtils.executeDirectStatement("CREATE TABLE IF NOT EXISTS nps.devices ( "
                 + "id int(11) NOT NULL auto_increment, "
                 + "urn VARCHAR(255) NOT NULL, "
-                + "model VARCHAR(255) NOT NULL, "
+                + "makeModel VARCHAR(255) NOT NULL, "
                 + "address VARCHAR(255) NOT NULL, "
                 + "location VARCHAR(255) NOT NULL, "
                 + "description VARCHAR(255) NOT NULL, "
@@ -103,10 +103,10 @@ public class NPSGlobalState {
         NPSUtils.executeDirectStatement("CREATE TABLE IF NOT EXISTS nps.interfaces ( "
                 + "id int(11) NOT NULL auto_increment, "
                 + "urn VARCHAR(255) NOT NULL, "
-                + "model VARCHAR(255) NOT NULL, "
+                + "makeModel VARCHAR(255) NOT NULL, "
                 + "deviceId int(11) NOT NULL, "
                 + "description VARCHAR(255) NOT NULL, "
-                + "aliasUrn VARCHAR(255) NOT NULL, "
+                + "aliasUrn VARCHAR(255) DEFAULT NULL, "
                 + "PRIMARY KEY (id)"
                 + ") ENGINE=InnoDB DEFAULT CHARSET=latin1");
         //init the contracts table
@@ -115,6 +115,7 @@ public class NPSGlobalState {
                 + "description VARCHAR(255) NOT NULL, "
                 + "status VARCHAR(255) NOT NULL, "
                 + "error VARCHAR(255) NOT NULL, "
+                + "modifiedTime TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, "
                 + "deleted int(1) NOT NULL DEFAULT 0, "
                 + "PRIMARY KEY (id)"
                 + ") ENGINE=InnoDB DEFAULT CHARSET=latin1");
@@ -145,7 +146,7 @@ public class NPSGlobalState {
         //init the models table
         NPSUtils.executeDirectStatement("CREATE TABLE IF NOT EXISTS nps.models ( "
                 + "id int(11) NOT NULL auto_increment, "
-                + "createdTime DATETIME NOT NULL, "
+                + "createdTime TIMESTAMP DEFAULT CURRENT_TIMESTAMP, "
                 + "version VARCHAR(255) NOT NULL, "
                 + "ttlModel LONGTEXT NOT NULL, "
                 + "status VARCHAR(255) NOT NULL, "

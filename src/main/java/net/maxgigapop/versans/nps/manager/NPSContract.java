@@ -17,6 +17,7 @@ import javax.xml.transform.dom.*;
 import org.w3c.dom.*;
 import java.io.StringWriter;
 import java.io.StringReader;
+import java.sql.Timestamp;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.Unmarshaller;
@@ -35,6 +36,7 @@ public class NPSContract implements java.io.Serializable {
     private List<NetworkDeviceInstance> deviceProvisionSequence = null;
     private String status = "";
     private String error = "";
+    private Timestamp modifiedTime = null;
     private boolean deleted = false;
     
     public NPSContract() {}
@@ -110,6 +112,14 @@ public class NPSContract implements java.io.Serializable {
 
     public void setDeleted(boolean deleted) {
         this.deleted = deleted;
+    }
+
+    public Timestamp getModifiedTime() {
+        return modifiedTime;
+    }
+
+    public void setModifiedTime(Timestamp modifiedTime) {
+        this.modifiedTime = modifiedTime;
     }
 
 }

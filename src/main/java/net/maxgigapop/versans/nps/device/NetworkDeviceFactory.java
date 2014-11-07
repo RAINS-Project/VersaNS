@@ -41,10 +41,10 @@ public class NetworkDeviceFactory {
         NetworkDeviceInstance ndi = null;
         try {
             ClassLoader cl = Thread.currentThread().getContextClassLoader();
-            Class<?> aClass = cl.loadClass(deviceRef.getModel());
+            Class<?> aClass = cl.loadClass(deviceRef.getMakeModel());
             ndi = (NetworkDeviceInstance)aClass.newInstance();
         } catch (Exception ex) {
-            throw new ServiceException("NetworkDeviceFactory.create cannot instantiate device model="+deviceRef.getModel());
+            throw new ServiceException("NetworkDeviceFactory.create cannot instantiate device makeModel="+deviceRef.getMakeModel());
         }
         ndi.setContractId(contractId);
         ndi.setDeviceRef(deviceRef); 

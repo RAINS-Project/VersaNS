@@ -65,6 +65,7 @@ public class ApplicationConfig extends Application {
             ex.printStackTrace();
             return;
         }
+        topologyManager.start();
         //init policy manager
         PolicyManager policyManager = new PolicyManager();
         NPSGlobalState.setPolicyManager(policyManager);

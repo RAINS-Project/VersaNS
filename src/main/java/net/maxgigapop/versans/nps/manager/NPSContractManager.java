@@ -245,6 +245,26 @@ public class NPSContractManager extends Thread {
         }
     }
 
+    public List<NPSContract> getAll() {
+        return this.npsContracts;
+        /*
+        synchronized (npsContracts) {
+           try {
+                session = HibernateUtil.getSessionFactory().openSession();
+                tx = session.beginTransaction();
+                Query q = session.createQuery("from NPSContract");
+                return (List<NPSContract>) q.list();
+            } catch (Exception e) {
+                tx.rollback();
+                e.printStackTrace();
+            } finally {
+                if (session.isOpen()) session.close();
+            }
+        }
+        return null;
+        */
+    }
+
     public NPSContract getContractById(String cid) {
         synchronized (npsContracts) {
             for (NPSContract ct: npsContracts) {
@@ -276,65 +296,67 @@ public class NPSContractManager extends Thread {
     // contracts in TERMINATING status have thread with goRun=false 
     // contracts in ROLLBACKED status are reloaded in idle mode (thread not started)
     public void reloadFromDB() {
-        try {
-            session = HibernateUtil.getSessionFactory().openSession();
-            tx = session.beginTransaction();
-            Query q = session.createQuery("from NPSContract as contract where" 
-                    + " contract.deleted<>1");
-            if (q.list().size() == 0) {
-                return;
-            }
-            npsContracts = (List<NPSContract>)q.list();
-        } catch (Exception e) {
-            tx.rollback();
-            e.printStackTrace();
-        } finally {
-            if (session.isOpen()) session.close();
-        }
-
-        Iterator<NPSContract> itCt = npsContracts.iterator();
-        while(itCt.hasNext()) {
-            NPSContract contract = itCt.next();
+        synchronized (npsContracts) {
             try {
-                restoreContract(contract);
-            } catch (Exception ex) {
-                contract.setError("reloadFromDB failed to resurrect contract from '"
-                        + contract.getStatus() +"' status");
-                contract.setStatus("FAILED");
-                contract.setDeleted(true);
-                try {
-                    updateContract(contract);
-                } catch (Exception e) {
-                    ;
+                session = HibernateUtil.getSessionFactory().openSession();
+                tx = session.beginTransaction();
+                Query q = session.createQuery("from NPSContract as contract where" 
+                        + " contract.deleted<>1");
+                if (q.list().size() == 0) {
+                    return;
                 }
-                itCt.remove();
-            } 
-            if (contract.getStatus().equalsIgnoreCase("ACTIVE")
-                    || contract.getStatus().equalsIgnoreCase("STARTING")
-                    || contract.getStatus().equalsIgnoreCase("ROLLBACKING")
-                    || contract.getStatus().equalsIgnoreCase("ROLLBACKED")
-                    || contract.getStatus().equalsIgnoreCase("TERMINATING")) {
-                NPSContractRunner contractRunner = new NPSContractRunner(this, contract);
-                synchronized (npsRunnerThreads) {
-                    npsRunnerThreads.add(contractRunner);
-                }
-                if (contract.getStatus().equalsIgnoreCase("TERMINATING"))
-                    contractRunner.setGoRun(false);
-                else if (contract.getStatus().equalsIgnoreCase("ROLLBACKED"))
-                    contractRunner.setGoPoll(false);
-                contractRunner.setPollInterval(NPSGlobalState.getPollInterval());
-                contractRunner.setReloaded(true);
-                contractRunner.start();
+                npsContracts = (List<NPSContract>)q.list();
+            } catch (Exception e) {
+                tx.rollback();
+                e.printStackTrace();
+            } finally {
+                if (session.isOpen()) session.close();
             }
-            else if (contract.getStatus().equalsIgnoreCase("PREPARING")) {
-                contract.setStatus("FAILED");
-                contract.setError("reloadFromDB force 'FAILED' from status 'PREPARING'");
+
+            Iterator<NPSContract> itCt = npsContracts.iterator();
+            while(itCt.hasNext()) {
+                NPSContract contract = itCt.next();
                 try {
-                    updateContract(contract);
+                    restoreContract(contract);
                 } catch (Exception ex) {
-                    ;
+                    contract.setError("reloadFromDB failed to resurrect contract from '"
+                            + contract.getStatus() +"' status");
+                    contract.setStatus("FAILED");
+                    contract.setDeleted(true);
+                    try {
+                        updateContract(contract);
+                    } catch (Exception e) {
+                        ;
+                    }
+                    itCt.remove();
+                } 
+                if (contract.getStatus().equalsIgnoreCase("ACTIVE")
+                        || contract.getStatus().equalsIgnoreCase("STARTING")
+                        || contract.getStatus().equalsIgnoreCase("ROLLBACKING")
+                        || contract.getStatus().equalsIgnoreCase("ROLLBACKED")
+                        || contract.getStatus().equalsIgnoreCase("TERMINATING")) {
+                    NPSContractRunner contractRunner = new NPSContractRunner(this, contract);
+                    synchronized (npsRunnerThreads) {
+                        npsRunnerThreads.add(contractRunner);
+                    }
+                    if (contract.getStatus().equalsIgnoreCase("TERMINATING"))
+                        contractRunner.setGoRun(false);
+                    else if (contract.getStatus().equalsIgnoreCase("ROLLBACKED"))
+                        contractRunner.setGoPoll(false);
+                    contractRunner.setPollInterval(NPSGlobalState.getPollInterval());
+                    contractRunner.setReloaded(true);
+                    contractRunner.start();
                 }
-                itCt.remove();
+                else if (contract.getStatus().equalsIgnoreCase("PREPARING")) {
+                    contract.setStatus("FAILED");
+                    contract.setError("reloadFromDB force 'FAILED' from status 'PREPARING'");
+                    try {
+                        updateContract(contract);
+                    } catch (Exception ex) {
+                        ;
+                    }
+                    itCt.remove();
+                }
             }
         }
     }

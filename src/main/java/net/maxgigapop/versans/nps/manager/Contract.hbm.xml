@@ -7,8 +7,9 @@
 		<property column="description" name="description" />
 		<property column="status" name="status" />
 		<property column="error" name="error" />
+		<property column="modifiedTime" name="modifiedTime" />
 		<property name="deleted" not-null="true">
-			<column sql-type="BOOLEAN" not-null="true" name="deleted" />
+		<column sql-type="BOOLEAN" not-null="true" name="deleted" />
 		</property>
 	</class>
 </hibernate-mapping>

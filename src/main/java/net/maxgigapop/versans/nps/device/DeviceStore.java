@@ -30,8 +30,8 @@ public class DeviceStore {
 
     public synchronized boolean add(Device n) {
         synchronized (this) {
-            if (n.getUrn().isEmpty() || n.getModel().isEmpty() || n.getAddress().isEmpty()) {
-                throw new IllegalArgumentException("Device object must have urn, model and address fields");
+            if (n.getUrn().isEmpty() || n.getMakeModel().isEmpty() || n.getAddress().isEmpty()) {
+                throw new IllegalArgumentException("Device object must have urn, makeModel and address fields");
             }
             try {
                 session = HibernateUtil.getSessionFactory().openSession();
@@ -55,8 +55,8 @@ public class DeviceStore {
 
     public synchronized boolean update(Device n) {
         synchronized (this) {
-            if (n.getUrn().isEmpty() || n.getModel().isEmpty() || n.getAddress().isEmpty()) {
-                throw new IllegalArgumentException("Device object must have urn, model and address fields");
+            if (n.getUrn().isEmpty() || n.getMakeModel().isEmpty() || n.getAddress().isEmpty()) {
+                throw new IllegalArgumentException("Device object must have urn, makemodel and address fields");
             }
             try {
                 session = HibernateUtil.getSessionFactory().openSession();
@@ -129,9 +129,10 @@ public class DeviceStore {
             cachedDevices = this.getAll();
         }
         synchronized (this) {
-            for (Device de: cachedDevices) {
-                if (de.getId() == nid)
+            for (Device de : cachedDevices) {
+                if (de.getId() == nid) {
                     return de;
+                }
             }
         }
         return null;
@@ -145,9 +146,10 @@ public class DeviceStore {
             cachedDevices = this.getAll();
         }
         synchronized (this) {
-            for (Device de: cachedDevices) {
-                if (de.getUrn().equalsIgnoreCase(urn))
+            for (Device de : cachedDevices) {
+                if (de.getUrn().equalsIgnoreCase(urn)) {
                     return de;
+                }
             }
         }
         return null;

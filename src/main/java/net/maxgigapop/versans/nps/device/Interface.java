@@ -11,10 +11,10 @@ package net.maxgigapop.versans.nps.device;
 public class Interface implements java.io.Serializable  {
     int id = 0;
     String urn = "";
-    String model = "";
+    String makeModel = "";
     int deviceId = 0;
     String description = "";
-    String aliasUrn = "";
+    String aliasUrn = null;
     Device parentDevice = null;
 
     public Interface() {}
@@ -43,12 +43,12 @@ public class Interface implements java.io.Serializable  {
         this.id = id;
     }
 
-    public String getModel() {
-        return model;
+    public String getMakeModel() {
+        return makeModel;
     }
 
-    public void setModel(String model) {
-        this.model = model;
+    public void setMakeModel(String makeModel) {
+        this.makeModel = makeModel;
     }
 
     public String getUrn() {

@@ -13,20 +13,27 @@ import net.maxgigapop.versans.nps.config.ConfigException;
 import net.maxgigapop.versans.nps.config.NPSConfigYaml;
 import net.maxgigapop.versans.nps.api.ServiceTerminationPoint;
 import net.maxgigapop.versans.nps.api.ServiceException;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 import org.apache.log4j.*;
+import com.hp.hpl.jena.ontology.OntModel;
+import com.hp.hpl.jena.ontology.OntModelSpec;
+import com.hp.hpl.jena.rdf.model.Model;
+import com.hp.hpl.jena.rdf.model.ModelFactory;
+import com.hp.hpl.jena.rdf.model.Property;
+import com.hp.hpl.jena.rdf.model.Resource;
+import java.io.StringWriter;
+import net.maxgigapop.versans.nps.rest.model.*;
 
 /**
  *
  * @author xyang
  */ 
-public class TopologyManager {
-    
+public class TopologyManager extends Thread {
     private org.apache.log4j.Logger log;
-
+    private Date lastestModelTime = new Date(0);
+    private OntModel topologyOntBaseModel = null;
+    private OntModel topologyOntModel = null;
+    
     public TopologyManager() {
         log = org.apache.log4j.Logger.getLogger(this.getClass());
     }
@@ -41,7 +48,7 @@ public class TopologyManager {
             String dName = (String) devIt.next();
             Map deviceCfg = (Map) devices.get(dName);
             String urn = (String)deviceCfg.get("urn");
-            String model = (String)deviceCfg.get("model");
+            String makeModel = (String)deviceCfg.get("make_model");
             String address = (String)deviceCfg.get("address");
             String location = (String)deviceCfg.get("location");
             String description = (String)deviceCfg.get("description");
@@ -57,10 +64,10 @@ public class TopologyManager {
                 device.setUrn(urn);
                 isNewDevice = true;
             } 
-            if (model != null) {
-                device.setModel(model);
+            if (makeModel != null) {
+                device.setMakeModel(makeModel);
             } else {
-                throw new ConfigException("device '" + dName + "' has no model configured");
+                throw new ConfigException("device '" + dName + "' has no make_model configured");
             }
             if (address != null) {
                 device.setAddress(address);
@@ -106,11 +113,11 @@ public class TopologyManager {
                 String ifDescr = (String)intfCfg.get("description");
                 if (ifDescr != null)
                     intf.setDescription(ifDescr);
-                String aliasUrn = (String)intfCfg.get("aliasurn");
+                String aliasUrn = (String)intfCfg.get("alias_urn");
                 if (aliasUrn != null)
                     intf.setAliasUrn(aliasUrn);
                 intf.setDeviceId(device.getId());
-                intf.setModel("Generic");
+                intf.setMakeModel("Generic");
                 if (isNewIf) {
                     NPSGlobalState.getInterfaceStore().add(intf);
                 } else {     
@@ -165,5 +172,84 @@ public class TopologyManager {
             }
         }
         return devInsSequence;
+    }
+    
+    public OntModel createTopologyBaseModel() {
+        OntModel model = ModelFactory.createOntologyModel(OntModelSpec.OWL_MEM_MICRO_RULE_INF); 
+        
+        model.setNsPrefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
+        model.setNsPrefix("rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#");
+        model.setNsPrefix("xsd", "http://www.w3.org/2001/XMLSchema#");
+        model.setNsPrefix("owl", "http://www.w3.org/2002/07/owl#");
+        model.setNsPrefix("nml", "http://schemas.ogf.org/nml/2013/03/base#");
+        model.setNsPrefix("mrs", "http://schemas.ogf.org/mrs/2013/12/topology#");
+        Property type = model.createProperty( "http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
+        Resource NamedIndividual = model.createResource("http://www.w3.org/2002/07/owl#NamedIndividual");
+
+        //List<Interface> interfaces = NPSGlobalState.getInterfaceStore().getAll();
+        
+        //$$ TODO: get the top level ontology resource URN from config file
+        Resource resTopology = model.createResource("urn:ogf:network:sdn.maxgigapop.net:network");        
+        model.add(model.createStatement(resTopology, type, NamedIndividual));
+        model.add(model.createStatement(resTopology, type, Nml.Topology));
+        
+        List<Device> devices = NPSGlobalState.getDeviceStore().getAll();
+        for (Device dev: devices) {
+            Resource resNode = model.createResource(dev.getUrn());
+            model.add(model.createStatement(resTopology, Nml.hasNode, resNode));
+            model.add(model.createStatement(resNode, Nml.belongsTo, resTopology));
+            model.add(model.createStatement(resNode, type, NamedIndividual));
+            if (dev.getLocation() != null && !dev.getLocation().isEmpty()) {
+                model.add(model.createStatement(resNode, Nml.address, dev.getLocation()));
+            }
+            if (dev.getDescription() != null && !dev.getDescription().isEmpty()) {
+                model.add(model.createStatement(resNode, Nml.name, dev.getDescription()));
+            }
+            List<Interface> devIfs = NPSGlobalState.getInterfaceStore().getByDeviceId(dev.getId());
+            if (devIfs == null || devIfs.isEmpty())
+                continue;
+            for (Interface intf: devIfs) {
+                Resource resPort = model.createResource(intf.getUrn());
+                model.add(model.createStatement(resNode, Nml.hasBidirectionalPort, resPort));
+                model.add(model.createStatement(resPort, Nml.belongsTo, resNode));
+                model.add(model.createStatement(resPort, type, NamedIndividual));
+                if (intf.getDescription() != null && !intf.getDescription().isEmpty()) {
+                   model.add(model.createStatement(resPort, Nml.name, intf.getDescription()));
+                }
+                if (intf.getAliasUrn() != null && !intf.getAliasUrn().isEmpty()) {
+                    model.add(model.createStatement(resNode, Nml.isAlias, intf.getAliasUrn()));
+                }
+            }
+        }
+        
+        return model;
+    }
+    
+    @Override
+    public void run() {
+        // 1. create base ontology model from deviceStore and interfaceStore
+        if (this.topologyOntBaseModel == null) {
+            this.topologyOntBaseModel = this.createTopologyBaseModel();
+            StringWriter out = new StringWriter();
+            topologyOntBaseModel.write(out);
+            log.info("created ontology for base topology: " + out.toString());
+        }
+
+        // 2. poll all contracts 
+        boolean modelToBeUpdated = false;
+        List<NPSContract> npsContracts = NPSGlobalState.getContractManager().getAll();
+        synchronized (npsContracts) {
+            for (NPSContract contract: npsContracts) {
+                if (contract.getModifiedTime().after(lastestModelTime)) {
+                    //$$ TODO: convert contract into ontology information     
+                    modelToBeUpdated = true;
+                }
+            }
+        }
+        if (modelToBeUpdated) {
+            this.topologyOntModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_MEM_MICRO_RULE_INF); 
+            this.topologyOntModel.add(this.topologyOntBaseModel);
+            //$$ TODO: mash up with the contract ontology information
+        }
     }
 }

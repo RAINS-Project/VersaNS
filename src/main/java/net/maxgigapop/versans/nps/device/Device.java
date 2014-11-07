@@ -15,7 +15,7 @@ import java.util.Map;
 public class Device implements java.io.Serializable  {
     int id = 0;
     String urn = "";
-    String model = "";
+    String makeModel = "";
     String address = "";
     String location = "";
     String description = "";
@@ -56,12 +56,12 @@ public class Device implements java.io.Serializable  {
         this.location = location;
     }
 
-    public String getModel() {
-        return model;
+    public String getMakeModel() {
+        return makeModel;
     }
 
-    public void setModel(String model) {
-        this.model = model;
+    public void setMakeModel(String makeModel) {
+        this.makeModel = makeModel;
     }
 
     public String getUrn() {

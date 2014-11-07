@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN" "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+<hibernate-mapping>
+	<class name="net.maxgigapop.versans.nps.rest.model.ModelBase"
+		table="models">
+		<id column="id" name="id">
+			<generator class="increment" />
+		</id>
+		<property column="creationTime" name="creationTime" />
+		<property column="version" name="version" />
+		<property column="ttlModel" name="ttlModel" />
+		<property column="status" name="status" />
+	</class>
+	<class name="net.maxgigapop.versans.nps.rest.model.DeltaBase"
+		table="deltas">
+		<id column="id" name="id">
+			<generator class="increment" />
+		</id>
+		<property column="creationTime" name="creationTime" />
+		<property column="referenceVersion" name="referenceVersion" />
+		<property column="targetVersion" name="targetVersion" />
+		<property column="modelReduction" name="modelReduction" />
+		<property column="modelAddition" name="modelAddition" />
+		<property column="status" name="status" />
+	</class>
+</hibernate-mapping>
