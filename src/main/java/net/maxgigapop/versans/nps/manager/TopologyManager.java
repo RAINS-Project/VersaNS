@@ -235,10 +235,11 @@ public class TopologyManager extends Thread {
             log.info("created ontology for base topology: " + out.toString());
         }
 
+        // $$ TODO add poll loop with configurable interval
         // 2. poll all contracts 
         boolean modelToBeUpdated = false;
         List<NPSContract> npsContracts = NPSGlobalState.getContractManager().getAll();
-        synchronized (npsContracts) {
+        synchronized (npsContracts) { 
             for (NPSContract contract: npsContracts) {
                 if (contract.getModifiedTime().after(lastestModelTime)) {
                     //$$ TODO: convert contract into ontology information     
