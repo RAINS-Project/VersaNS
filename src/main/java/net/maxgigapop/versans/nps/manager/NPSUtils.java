@@ -183,4 +183,15 @@ public class NPSUtils {
             return vtags[1];
         return vtags[0];
     }
+
+    public static String concatStringsWSep(Iterable<String> strings, String separator) {
+        StringBuilder sb = new StringBuilder();
+        String sep = "";
+        for(String s: strings) {
+            sb.append(sep).append(s);
+            sep = separator;
+        }
+        return sb.toString();                           
+    }
+
 }

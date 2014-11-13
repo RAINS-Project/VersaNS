@@ -27,8 +27,8 @@ public class ModelStore {
 
     public synchronized boolean add(ModelBase n) {
         synchronized (this) {
-            if (n.getId() == 0 || n.getVersion().isEmpty()) {
-                throw new IllegalArgumentException("ModelBase object must have valid id and version fields");
+            if (n.getVersion().isEmpty()) {
+                throw new IllegalArgumentException("ModelBase object must have valid version field");
             } try {
                 session = HibernateUtil.getSessionFactory().openSession();
                 tx = session.beginTransaction();
@@ -50,8 +50,8 @@ public class ModelStore {
 
     public synchronized boolean update(ModelBase n) {
         synchronized (this) {
-            if (n.getId() == 0 || n.getVersion().isEmpty()) {
-                throw new IllegalArgumentException("ModelBase object must have valid id and version fields");
+            if (n.getVersion().isEmpty()) {
+                throw new IllegalArgumentException("ModelBase object must have valid version field");
             } try {
                 session = HibernateUtil.getSessionFactory().openSession();
                 tx = session.beginTransaction();

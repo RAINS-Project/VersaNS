@@ -146,7 +146,7 @@ public class NPSGlobalState {
         //init the models table
         NPSUtils.executeDirectStatement("CREATE TABLE IF NOT EXISTS nps.models ( "
                 + "id int(11) NOT NULL auto_increment, "
-                + "createdTime TIMESTAMP DEFAULT CURRENT_TIMESTAMP, "
+                + "creationTime TIMESTAMP DEFAULT CURRENT_TIMESTAMP, "
                 + "version VARCHAR(255) NOT NULL, "
                 + "ttlModel LONGTEXT NOT NULL, "
                 + "status VARCHAR(255) NOT NULL, "
@@ -155,7 +155,7 @@ public class NPSGlobalState {
         //init the deltas table
         NPSUtils.executeDirectStatement("CREATE TABLE IF NOT EXISTS nps.deltas ( "
                 + "id int(11) NOT NULL auto_increment, "
-                + "createdTime DATETIME NOT NULL, "
+                + "creationTime DATETIME NOT NULL, "
                 + "referenceVersion VARCHAR(255) NOT NULL, "
                 + "targetVersion VARCHAR(255) NOT NULL, "
                 + "modelAddition LONGTEXT NOT NULL, "

@@ -47,6 +47,7 @@ public class ModelResource {
     @GET
     @Produces({"application/xml", "application/json"})
     public ModelBase pull() throws NotFoundException {
+        // ?? get latest ontModel directly from TopologyManager ??
         ModelBase model = NPSGlobalState.getModelStore().getHead();
         if (model == null)
             throw new NotFoundException("None!");     

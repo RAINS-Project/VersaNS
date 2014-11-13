@@ -17,5 +17,6 @@
     <property name="c3p0.idle_test_period">3000</property>
     <mapping resource="Contract.hbm.xml"/>
     <mapping resource="Device.hbm.xml"/>
+    <mapping resource="Model.hbm.xml"/>
   </session-factory>
 </hibernate-configuration>

@@ -27,8 +27,8 @@ public class DeltaStore {
 
     public synchronized boolean add(DeltaBase n) {
         synchronized (this) {
-            if (n.getId() == 0 || n.getTargetVersion().isEmpty() || n.getReferenceVersion().isEmpty()) {
-                throw new IllegalArgumentException("DeltaBase object must have valid id, targetVersion and referenceVersion fields");
+            if (n.getTargetVersion().isEmpty() || n.getReferenceVersion().isEmpty()) {
+                throw new IllegalArgumentException("DeltaBase object must have valid targetVersion and referenceVersion fields");
             }
             try {
                 session = HibernateUtil.getSessionFactory().openSession();
@@ -51,8 +51,8 @@ public class DeltaStore {
 
     public synchronized boolean update(DeltaBase n) {
         synchronized (this) {
-            if (n.getId() == 0 || n.getTargetVersion().isEmpty() || n.getReferenceVersion().isEmpty()) {
-                throw new IllegalArgumentException("DeltaBase object must have valid id, targetVersion and referenceVersion fields");            }
+            if (n.getTargetVersion().isEmpty() || n.getReferenceVersion().isEmpty()) {
+                throw new IllegalArgumentException("DeltaBase object must have valid targetVersion and referenceVersion fields");            }
             try {
                 session = HibernateUtil.getSessionFactory().openSession();
                 tx = session.beginTransaction();
