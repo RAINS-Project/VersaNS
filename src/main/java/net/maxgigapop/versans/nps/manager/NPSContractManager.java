@@ -4,6 +4,7 @@
  */
 package net.maxgigapop.versans.nps.manager;
 
+import java.sql.Timestamp;
 import net.maxgigapop.versans.nps.device.DeviceDelta;
 import net.maxgigapop.versans.nps.device.Device;
 import net.maxgigapop.versans.nps.device.DeviceException;
@@ -15,6 +16,7 @@ import net.maxgigapop.versans.nps.api.ServicePolicy;
 import net.maxgigapop.versans.nps.api.ServiceException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import org.hibernate.Query;
@@ -220,6 +222,9 @@ public class NPSContractManager extends Thread {
             }
             npsContracts.add(contract);
         }
+        Date now = new Date();
+        Timestamp tsNow = new Timestamp(now.getTime());
+        contract.setModifiedTime(tsNow);
     }
 
     public void updateContract(NPSContract contract) throws ServiceException {
@@ -243,6 +248,10 @@ public class NPSContractManager extends Thread {
                 throw new ServiceException("NPSContractManager.updateContract: unknown contract");
             }
         }
+        // ?? auto update ?
+        Date now = new Date();
+        Timestamp tsNow = new Timestamp(now.getTime());
+        contract.setModifiedTime(tsNow);
     }
 
     public List<NPSContract> getAll() {

@@ -1,4 +1,4 @@
-POST /services/NPService/ HTTP/1.1
+POST /VersaNS-0.0.1-SNAPSHOT/NPService HTTP/1.1
 User-Agent: wsdlpull/1.23
 Host: localhost:8080
 SOAPAction:
@@ -14,7 +14,7 @@ Content-Length: CONTENT_LENGTH
     <SOAP-ENV:Body>
         <teardown xmlns="http://maxgigapop.net/versans/nps/api/">
             <transactionId>trans-12343</transactionId>
-            <contractId>svc-aws-10002</contractId>
+            <contractId>svc-aws-11003</contractId>
         </teardown>
     </SOAP-ENV:Body>
 </SOAP-ENV:Envelope>

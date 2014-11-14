@@ -14,7 +14,7 @@ Content-Length: CONTENT_LENGTH
     <SOAP-ENV:Body>
         <query xmlns="http://maxgigapop.net/versans/nps/api/">
             <transactionId>trans-12342</transactionId>
-            <contractId>svc-asw-10001</contractId>
+            <contractId>svc-aws-11003</contractId>
         </query>
     </SOAP-ENV:Body>
 </SOAP-ENV:Envelope>

@@ -31,7 +31,7 @@ public class TopologyManager extends Thread {
     private Date lastestModelTime = new Date(0);
     private OntModel topologyOntBaseModel = null;
     private OntModel topologyOntModel = null;
-    private long pollInterval = 60000L; // 60 seconds
+    private long pollInterval = 30000L; // 30 seconds
     private final Integer topologyOntModelLock = new Integer(0);
 
     public TopologyManager() {
@@ -205,16 +205,13 @@ public class TopologyManager extends Thread {
         model.setNsPrefix("mrs", Mrs.getURI());
 
         //$$ TODO: get the top level ontology resource URN from config file
-        Resource resTopology = model.createResource("urn:ogf:network:sdn.maxgigapop.net:network");        
-        model.add(model.createStatement(resTopology, RdfOwl.type, RdfOwl.NamedIndividual));
-        model.add(model.createStatement(resTopology, RdfOwl.type, Nml.Topology));
+        Resource resTopology = RdfOwl.createResource(model, "urn:ogf:network:sdn.maxgigapop.net:network", Nml.Topology); 
         
         List<Device> devices = NPSGlobalState.getDeviceStore().getAll();
         for (Device dev: devices) {
-            Resource resNode = model.createResource(dev.getUrn());
+            Resource resNode =  RdfOwl.createResource(model, dev.getUrn(), Nml.Node);
             model.add(model.createStatement(resTopology, Nml.hasNode, resNode));
             model.add(model.createStatement(resNode, Nml.belongsTo, resTopology));
-            model.add(model.createStatement(resNode, RdfOwl.type, RdfOwl.NamedIndividual));
             if (dev.getLocation() != null && !dev.getLocation().isEmpty()) {
                 model.add(model.createStatement(resNode, Nml.address, dev.getLocation()));
             }
@@ -225,19 +222,16 @@ public class TopologyManager extends Thread {
             if (devIfs == null || devIfs.isEmpty())
                 continue;
             // create SwitchingService that connects all these interfaces
-            Resource resSwSvc = model.createResource(dev.getUrn()+":l2switching");
-            model.add(model.createStatement(resSwSvc, RdfOwl.type, RdfOwl.NamedIndividual));
-            model.add(model.createStatement(resSwSvc, RdfOwl.type, Nml.SwitchingService));
+            Resource resSwSvc =  RdfOwl.createResource(model, dev.getUrn()+":l2switching", Nml.SwitchingService);
             model.add(model.createStatement(resSwSvc, Nml.encoding, model.createResource("http://schemas.ogf.org/nml/2012/10/ethernet#vlan")));
             model.add(model.createStatement(resSwSvc, Nml.labelSwapping, "false"));
             model.add(model.createStatement(resNode, Nml.hasService, resSwSvc));
             for (Interface intf: devIfs) {
-                Resource resPort = model.createResource(intf.getUrn());
+                Resource resPort = RdfOwl.createResource(model, intf.getUrn(), Nml.BidirectionalPort);
                 model.add(model.createStatement(resNode, Nml.hasBidirectionalPort, resPort));
                 model.add(model.createStatement(resPort, Nml.belongsTo, resNode));
                 model.add(model.createStatement(resSwSvc, Nml.hasBidirectionalPort, resPort));
                 model.add(model.createStatement(resPort, Nml.belongsTo, resSwSvc));
-                model.add(model.createStatement(resPort, RdfOwl.type, RdfOwl.NamedIndividual));
                 if (intf.getDescription() != null && !intf.getDescription().isEmpty()) {
                    model.add(model.createStatement(resPort, Nml.name, intf.getDescription()));
                 }
@@ -254,7 +248,7 @@ public class TopologyManager extends Thread {
         Resource resSubnet = null;
         Resource resNode = null;
         for (ServiceTerminationPoint stp: contract.getCustomerSTPs()) {
-            String portUrn = stp.getInterfaceRef();
+            String portUrn = NPSUtils.extractInterfaceUrn(stp.getId());
             Layer2Info l2info = stp.getLayer2Info();
             if (l2info != null) {
                 VlanTag outerVlan = l2info.getOuterVlanTag();
@@ -263,6 +257,7 @@ public class TopologyManager extends Thread {
                 if (resSubnet == null) {
                     Resource resPort = model.getResource(portUrn);
                     //$$ if (resPort == null) throw exception;
+                    // look for SwitchingService and Node that contains this port
                     Resource resSwSvc = null;
                     StmtIterator stmts = model.listStatements(null, Nml.hasBidirectionalPort, resPort);
                     while (stmts.hasNext()) {
@@ -277,43 +272,55 @@ public class TopologyManager extends Thread {
                             resNode = stmtSubject;
                         }
                     }
-                    //$$: if (resSwSvc == null || resNode == null) throw exception;                  
-                    resSubnet = model.createResource(resSwSvc.getURI() + ":vlan-" + outerVlan.toString());
-                    model.add(model.createStatement(resSubnet, RdfOwl.type, RdfOwl.NamedIndividual));
-                    model.add(model.createStatement(resSubnet, RdfOwl.type, Mrs.SwitchingSubnet));
-                    model.add(model.createStatement(resSubnet, Nml.encoding, model.createResource("http://schemas.ogf.org/nml/2012/10/ethernet#vlan")));
-                    model.add(model.createStatement(resSubnet, Nml.labelSwapping, "false"));
+                    //$$: if (resSwSvc == null || resNode == null) throw exception;
+                    // do not create subnet for l3routing contract
+                    if (contract.getProviderSTP() == null) {
+                        resSubnet = RdfOwl.createResource(model, resSwSvc.getURI() + ":" + contract.getId()+"-vlan", Mrs.SwitchingSubnet);
+                        model.add(model.createStatement(resSwSvc, Mrs.providesSubnet, resSubnet));
+                        model.add(model.createStatement(resSubnet, Nml.encoding, model.createResource("http://schemas.ogf.org/nml/2012/10/ethernet#vlan")));
+                        model.add(model.createStatement(resSubnet, Nml.labelSwapping, "false"));
+                    }
                 }
                 //create sub-interface BidirectionalPort for outerVlan
-                Resource resSubIf = model.createResource(portUrn + ":vlan-" + outerVlan.toString());
-                model.add(model.createStatement(resSubIf, RdfOwl.type, RdfOwl.NamedIndividual));
-                model.add(model.createStatement(resSubIf, RdfOwl.type, Nml.BidirectionalPort));
-                //$$ TODO: add Nml.Label to under resSubIf
+                Resource resSubIf = RdfOwl.createResource(model, portUrn + ":vlan-" + outerVlan.getValue(), Nml.BidirectionalPort);
+                model.add(model.createStatement(resNode, Nml.hasBidirectionalPort, resSubIf));
+                //add Nml.Label for resSubIf
+                Resource resSubIfLabel = RdfOwl.createResource(model, portUrn + ":vlan-" + outerVlan.getValue()+":label", Nml.Label);
+                model.add(model.createStatement(resSubIf, Nml.hasLabel, resSubIfLabel));
+                model.add(model.createStatement(resSubIfLabel, Nml.labeltype, model.createResource("http://schemas.ogf.org/nml/2012/10/ethernet#vlan")));
+                model.add(model.createStatement(resSubIfLabel, Nml.value, outerVlan.getValue()));
 
                 //add sub-interface BidirectionalPort to the SwitchingSubnet
-                model.add(model.createStatement(resSubnet, Nml.hasBidirectionalPort, resSubIf));
-                model.add(model.createStatement(resSubIf, Nml.belongsTo, resSubnet));
+                if (contract.getProviderSTP() == null) {
+                    model.add(model.createStatement(resSubnet, Nml.hasBidirectionalPort, resSubIf));
+                    model.add(model.createStatement(resSubIf, Nml.belongsTo, resSubnet));
+                }
             }
         }
         if (contract.getProviderSTP() != null) {
             ServiceTerminationPoint providerStp = contract.getProviderSTP();
-            String providerPortUrn = providerStp.getInterfaceRef();
+            String providerPortUrn = NPSUtils.extractInterfaceUrn(providerStp.getId());
             Resource resProviderPort = model.getResource(providerPortUrn); // $$ null -> exception
             Layer2Info providerL2Info = providerStp.getLayer2Info();
-            if (providerL2Info != null && resSubnet != null) {
+            if (providerL2Info != null) {
                 VlanTag outerVlan = providerL2Info.getOuterVlanTag();
-                //VlanTag innerVlan =  l2info.getInnerVlanTag();
-                Resource resSubIf = model.createResource(providerPortUrn + ":vlan-" + outerVlan.toString());
-                model.add(model.createStatement(resSubIf, RdfOwl.type, RdfOwl.NamedIndividual));
-                model.add(model.createStatement(resSubIf, RdfOwl.type, Nml.BidirectionalPort));
-                //add sub-interface BidirectionalPort to the SwitchingSubnet
-                model.add(model.createStatement(resSubnet, Nml.hasBidirectionalPort, resSubIf));
-                model.add(model.createStatement(resSubIf, Nml.belongsTo, resSubnet));
+                //?? VlanTag innerVlan =  l2info.getInnerVlanTag();
+                Resource resSubIf = RdfOwl.createResource(model, providerPortUrn + ":vlan-" + outerVlan.getValue(), Nml.BidirectionalPort);
+                 //add Nml.Label for resSubIf
+                Resource resSubIfLabel = RdfOwl.createResource(model, providerPortUrn + ":vlan-" + outerVlan.getValue()+":label", Nml.Label);
+                model.add(model.createStatement(resSubIf, Nml.hasLabel, resSubIfLabel));
+                model.add(model.createStatement(resSubIfLabel, Nml.labeltype, model.createResource("http://schemas.ogf.org/nml/2012/10/ethernet#vlan")));
+                model.add(model.createStatement(resSubIfLabel, Nml.value, outerVlan.getValue()));
+               // add sub-interface BidirectionalPort to the Node (and ?SwitchingSubnet?)
+                model.add(model.createStatement(resNode, Nml.hasBidirectionalPort, resSubIf));
+                //$$ we should not create subnet for a l3routing cross-connect contract
+                //model.add(model.createStatement(resSubnet, Nml.hasBidirectionalPort, resSubIf));
+                //model.add(model.createStatement(resSubIf, Nml.belongsTo, resSubnet));
             }
             Layer3Info providerL3Info = providerStp.getLayer3Info();
             if (providerL3Info != null) {
                 ServiceTerminationPoint customerStp = contract.getCustomerSTPs().get(0);
-                String customerPortUrn = customerStp.getInterfaceRef();
+                String customerPortUrn = NPSUtils.extractInterfaceUrn(customerStp.getId());
                 Resource resCustomerPort = model.getResource(customerPortUrn); // $$ null -> exception
                 Layer3Info customerL3Info = customerStp.getLayer3Info();
                 // create RoutingService 
@@ -324,38 +331,47 @@ public class TopologyManager extends Thread {
                 // add Route from provider to customer
                 String rtToCustomerUri = resNode.getURI() + ":l3route:" + contract.getId() + ":p2c";
                 Resource resRtToCustomer = RdfOwl.createResource(model, rtToCustomerUri, Mrs.Route);
+                model.add(model.createStatement(resRtSvc, Mrs.providesRoute, resRtToCustomer));
+                int netAddrNo = 1;
                 // to: customer bgp-asn
-                Resource resNetAddrCustomerASN = RdfOwl.createResource(model, rtToCustomerUri + ":bgp-asn", Mrs.NetworkAddress);
+                Resource resNetAddrCustomerASN = RdfOwl.createResource(model, String.format("%s:aid-%d", rtToCustomerUri, netAddrNo++), Mrs.NetworkAddress);
+                model.add(model.createStatement(resNetAddrCustomerASN, Mrs.type, "bgp-asn"));
                 model.add(model.createStatement(resNetAddrCustomerASN, Mrs.value, customerL3Info.getBgpInfo().getPeerASN()));
                 model.add(model.createStatement(resRtToCustomer, Mrs.routeTo, resNetAddrCustomerASN));
                 // next: customer bgp-remote-ip/30 + resSubIf
-                Resource resNetAddrCustomerRmtIfIp = RdfOwl.createResource(model, rtToCustomerUri + ":bgp-remote-ip", Mrs.NetworkAddress);
+                Resource resNetAddrCustomerRmtIfIp = RdfOwl.createResource(model, String.format("%s:aid-%d", rtToCustomerUri, netAddrNo++), Mrs.NetworkAddress);
+                model.add(model.createStatement(resNetAddrCustomerRmtIfIp, Mrs.type, "bgp-remote-ip"));
                 model.add(model.createStatement(resNetAddrCustomerRmtIfIp, Mrs.value, customerL3Info.getBgpInfo().getLinkRemoteIpAndMask()));
                 model.add(model.createStatement(resRtToCustomer, Mrs.nextHop, resNetAddrCustomerRmtIfIp));
                 // add Route from customer to provider 
                 String rtToProviderUri = resNode.getURI() + ":l3route:" + contract.getId() + ":c2p";
                 if (customerL3Info != null && customerL3Info.getBgpInfo() != null) {
                     Resource resRtToProvider = RdfOwl.createResource(model, rtToProviderUri, Mrs.Route);
+                    model.add(model.createStatement(resRtSvc, Mrs.providesRoute, resRtToProvider));
                     // to: provider bgp-asn
-                    Resource resNetAddrProviderASN = RdfOwl.createResource(model, rtToProviderUri+":bgp-asn", Mrs.NetworkAddress);
+                    Resource resNetAddrProviderASN = RdfOwl.createResource(model, String.format("%s:aid-%d", rtToProviderUri, netAddrNo++), Mrs.NetworkAddress);
+                    model.add(model.createStatement(resNetAddrProviderASN, Mrs.type, "bgp-asn"));
                     model.add(model.createStatement(resNetAddrProviderASN, Mrs.value, providerL3Info.getBgpInfo().getPeerASN()));
                     model.add(model.createStatement(resRtToProvider, Mrs.routeTo, resNetAddrProviderASN));
                     // next: provider bgp-remote-ip/30 + resSubIf
-                    Resource resNetAddrProviderRmtIfIp = RdfOwl.createResource(model, rtToProviderUri+":bgp-remote-ip", Mrs.NetworkAddress);
+                    Resource resNetAddrProviderRmtIfIp = RdfOwl.createResource(model, String.format("%s:aid-%d", rtToProviderUri, netAddrNo++), Mrs.NetworkAddress);
+                    model.add(model.createStatement(resNetAddrProviderRmtIfIp, Mrs.type, "bgp-remote-ip"));
                     model.add(model.createStatement(resNetAddrProviderRmtIfIp, Mrs.value, providerL3Info.getBgpInfo().getLinkRemoteIpAndMask()));
                     model.add(model.createStatement(resRtToProvider, Mrs.nextHop, resNetAddrProviderRmtIfIp));
                     // from: customer bgp-asn + bgp-local-ip/30 + prefix-list + resSubIf
                     model.add(model.createStatement(resRtToProvider, Mrs.routeFrom, resNetAddrCustomerASN));
                     model.add(model.createStatement(resRtToProvider, Mrs.routeFrom, resNetAddrCustomerRmtIfIp));
                     model.add(model.createStatement(resRtToProvider, Mrs.routeFrom, resCustomerPort));
-                    Resource resNetAddrCustomerPrefixList = RdfOwl.createResource(model, rtToCustomerUri+":bgp-prefix-list", Mrs.NetworkAddress);
+                    Resource resNetAddrCustomerPrefixList = RdfOwl.createResource(model, String.format("%s:aid-%d", rtToCustomerUri, netAddrNo++), Mrs.NetworkAddress);
+                    model.add(model.createStatement(resNetAddrCustomerPrefixList, Mrs.type, "bgp-prefix-list"));
                     model.add(model.createStatement(resNetAddrCustomerPrefixList, Mrs.value, NPSUtils.concatStringsWSep(customerL3Info.getBgpInfo().getPeerIpPrefix(), ",")));
                     model.add(model.createStatement(resRtToProvider, Mrs.routeFrom, resNetAddrCustomerPrefixList));
                     // add the other Route (resRtToCustomer) from: provider bgp-asn + bgp-local-ip/30 + prefix-list + resSubIf
                     model.add(model.createStatement(resRtToCustomer, Mrs.routeFrom, resNetAddrProviderASN));
                     model.add(model.createStatement(resRtToCustomer, Mrs.routeFrom, resNetAddrProviderRmtIfIp));
                     model.add(model.createStatement(resRtToCustomer, Mrs.routeFrom, resProviderPort));
-                    Resource resNetAddrProviderPrefixList = RdfOwl.createResource(model, rtToProviderUri+":bgp-prefix-list", Mrs.NetworkAddress);
+                    Resource resNetAddrProviderPrefixList = RdfOwl.createResource(model, String.format("%s:aid-%d", rtToProviderUri, netAddrNo++), Mrs.NetworkAddress);
+                    model.add(model.createStatement(resNetAddrProviderPrefixList, Mrs.type, "bgp-prefix-list"));
                     model.add(model.createStatement(resNetAddrProviderPrefixList, Mrs.value, NPSUtils.concatStringsWSep(providerL3Info.getBgpInfo().getPeerIpPrefix(), ",")));
                     model.add(model.createStatement(resRtToCustomer, Mrs.routeFrom, resNetAddrProviderPrefixList));
                 }
@@ -385,13 +401,20 @@ public class TopologyManager extends Thread {
             }
             synchronized (this.topologyOntModelLock) { 
                 this.topologyOntModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_MEM_MICRO_RULE_INF); 
-                this.topologyOntModel.add(this.topologyOntBaseModel);
+                this.topologyOntModel.setNsPrefix("rdf", RdfOwl.getRdfURI());
+                this.topologyOntModel.setNsPrefix("rdfs", RdfOwl.getRdfsURI());
+                this.topologyOntModel.setNsPrefix("owl", RdfOwl.getOwlURI());
+                this.topologyOntModel.setNsPrefix("xsd", RdfOwl.getXsdURI());
+                this.topologyOntModel.setNsPrefix("nml", Nml.getURI());
+                this.topologyOntModel.setNsPrefix("mrs", Mrs.getURI());
+                this.topologyOntModel.addSubModel(this.topologyOntBaseModel, true);
                 List<NPSContract> npsContracts = NPSGlobalState.getContractManager().getAll();
                 boolean hasNewModel = false;
                 synchronized (npsContracts) {
                     for (NPSContract contract: npsContracts) {
                         // all contracts count (active or in-process) 
                         //?? Should failed count or be given special treatment ??
+                        //@@@@ comment out for debugging only
                         if (contract.getStatus().contains("ROLLBACKED"))
                             continue;
                         if (contract.getModifiedTime().after(lastestModelTime)) {
@@ -400,10 +423,11 @@ public class TopologyManager extends Thread {
                         }
                     }
                 }
+                lastestModelTime = new Date();
                 if (hasNewModel) { // ?? store every model or not ??
                     ModelBase newModel = new ModelBase();
                     StringWriter ttlWriter = new StringWriter();
-                    topologyOntBaseModel.write(ttlWriter, "TURTLE");
+                    this.topologyOntModel.write(ttlWriter, "TURTLE");
                     newModel.setTtlModel(ttlWriter.toString());
                     newModel.setVersion(UUID.randomUUID().toString());
                     newModel.setStatus("ACTIVE");
