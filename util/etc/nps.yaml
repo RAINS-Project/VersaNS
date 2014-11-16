@@ -1,13 +1,13 @@
 ---
 dbUser: 'dragon'
 dbPass: 'flame'
-templateDir: '/etc/sdnx/nps/templates/'
+templateDir: '/etc/versans/nps/templates/'
 providerDefaultBgpGroup: 'AWS'
 customerDefaultBgpGroup: 'MEMBERS'
 devices:
     MAX:
         urn: 'urn:ogf:network:domain=sdnx.maxgigapop.net:node=MAX'
-        model: 'net.maxgigapop.versans.nps.device.RouterJUNOS'
+        make_model: 'net.maxgigapop.versans.nps.device.RouterJUNOS'
         address: 'lab-t640.maxgigapop.net'
         description: device1
         connector:
@@ -15,7 +15,7 @@ devices:
             password: 'jetdev2'
             isstub: false
             commandlog: true
-            logicalsystem: 'jetstream'
+#            logicalsystem: 'jetstream'
             bgp_config_customer: true
             bgp_reject_policy: 'REJECT'
         interfaces:
@@ -30,7 +30,7 @@ devices:
                 description: interface1-3
     MCLN:
         urn: 'urn:ogf:network:domain=sdnx.maxgigapop.net:node=MCLN'
-        model: 'net.maxgigapop.versans.nps.device.RouterJUNOS'
+        make_model: 'net.maxgigapop.versans.nps.device.RouterJUNOS'
         address: 'mcln-t640.maxgigapop.net'
         description: device2
         connector:
@@ -49,7 +49,7 @@ devices:
                 description: interface2-2
     DRAGON:
         urn: 'urn:ogf:network:domain=sdnx.maxgigapop.net:node=DRAGON'
-        model: 'net.maxgigapop.versans.nps.device.OscarsDCN'
+        make_model: 'net.maxgigapop.versans.nps.device.OscarsDCN'
         address: 'idc-new.maxgigapop.net'
         description: 'DRAGON OSCARS DCN'
         connector:
@@ -75,7 +75,7 @@ devices:
                 description: interface3-4
     SDN:
         urn: 'urn:ogf:network:domain=sdnx.maxgigapop.net:node=SDN'
-        model: 'net.maxgigapop.versans.nps.device.FloodlightSDN'
+        make_model: 'net.maxgigapop.versans.nps.device.FloodlightSDN'
         address: 'dev2.jetstream.maxgigapop.net'
         description: 'OpenFlow SDN by FloodLight Controller'
         connector:

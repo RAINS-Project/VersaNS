@@ -204,7 +204,7 @@ public class TopologyManager extends Thread {
         model.setNsPrefix("nml", Nml.getURI());
         model.setNsPrefix("mrs", Mrs.getURI());
 
-        //$$ TODO: get the top level ontology resource URN from config file
+        //$$ TODO: get the top level topology URN from config file
         Resource resTopology = RdfOwl.createResource(model, "urn:ogf:network:sdn.maxgigapop.net:network", Nml.Topology); 
         
         List<Device> devices = NPSGlobalState.getDeviceStore().getAll();
@@ -238,7 +238,6 @@ public class TopologyManager extends Thread {
                 if (intf.getAliasUrn() != null && !intf.getAliasUrn().isEmpty()) {
                     model.add(model.createStatement(resNode, Nml.isAlias, intf.getAliasUrn()));
                 }
-                //$$ TODO: add LabelGroup to under resPort
             }
         }
         return model;
@@ -383,6 +382,7 @@ public class TopologyManager extends Thread {
     public void run() {
         // 1. create base ontology model from deviceStore and interfaceStore
         if (this.topologyOntBaseModel == null) {
+            // $$ TODO: only maintain list of statements and add these to topologyOntModel? 
             this.topologyOntBaseModel = this.createTopologyBaseModel();
             ModelBase baseModel = new ModelBase();
             StringWriter ttlWriter = new StringWriter();
@@ -407,7 +407,7 @@ public class TopologyManager extends Thread {
                 this.topologyOntModel.setNsPrefix("xsd", RdfOwl.getXsdURI());
                 this.topologyOntModel.setNsPrefix("nml", Nml.getURI());
                 this.topologyOntModel.setNsPrefix("mrs", Mrs.getURI());
-                this.topologyOntModel.addSubModel(this.topologyOntBaseModel, true);
+                this.topologyOntModel.add(this.topologyOntBaseModel);
                 List<NPSContract> npsContracts = NPSGlobalState.getContractManager().getAll();
                 boolean hasNewModel = false;
                 synchronized (npsContracts) {
