@@ -390,9 +390,9 @@ public class TopologyManager extends Thread {
             this.topologyOntHeadModel.read(ttlReader, null, "TURTLE");
         }
         // 1. create base ontology model from deviceStore and interfaceStore
-        if (this.topologyOntBaseModel == null) {
-            // $$ TODO: only maintain list of statements and add these to topologyOntModel? 
-            this.topologyOntBaseModel = this.createTopologyBaseModel();
+        this.topologyOntBaseModel = this.createTopologyBaseModel();
+        // store base model if nothing stored before.
+        if (this.topologyOntHeadModel == null) {
             ModelBase baseModel = new ModelBase();
             StringWriter ttlWriter = new StringWriter();
             topologyOntBaseModel.write(ttlWriter, "TURTLE");

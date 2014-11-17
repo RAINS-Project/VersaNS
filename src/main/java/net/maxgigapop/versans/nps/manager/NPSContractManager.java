@@ -399,7 +399,16 @@ public class NPSContractManager extends Thread {
             contract.getDeviceProvisionSequence().add(ndi);
         }
         
-        //$$ TODO: unmarshall contractXml and restore STP and Policy data
+        try {
+            // unmarshall contractXml and restore STP and Policy data
+            ServiceContract serviceContract = (new JAXBHelper<ServiceContract>(ServiceContract.class)).partialUnmarshal(contract.getContractXml());
+            contract.setCustomerSTPs(serviceContract.getCustomerSTP());
+            contract.setProviderSTP(serviceContract.getProviderSTP());
+            contract.setServicePolicies(serviceContract.getPolicyData());
+        } catch (JAXBException ex) {
+            log.error("Contract ID:" + contract.getId() + " - fail to restore by marshalling contractXml into ServiceContract: " + ex.getMessage());
+            throw new ServiceException("Contract ID:" + contract.getId() + " - fail to restore by marshalling contractXml into ServiceContract: " + ex.getMessage());
+        }
     }
 
 }
