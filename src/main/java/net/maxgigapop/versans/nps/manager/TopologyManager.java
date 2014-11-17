@@ -247,7 +247,7 @@ public class TopologyManager extends Thread {
         Resource resSubnet = null;
         Resource resNode = null;
         for (ServiceTerminationPoint stp: contract.getCustomerSTPs()) {
-            String portUrn = NPSUtils.extractInterfaceUrn(stp.getId());
+            String portUrn = stp.getId();
             Layer2Info l2info = stp.getLayer2Info();
             if (l2info != null) {
                 VlanTag outerVlan = l2info.getOuterVlanTag();
@@ -298,7 +298,7 @@ public class TopologyManager extends Thread {
         }
         if (contract.getProviderSTP() != null) {
             ServiceTerminationPoint providerStp = contract.getProviderSTP();
-            String providerPortUrn = NPSUtils.extractInterfaceUrn(providerStp.getId());
+            String providerPortUrn = providerStp.getId();
             Resource resProviderPort = model.getResource(providerPortUrn); // $$ null -> exception
             Layer2Info providerL2Info = providerStp.getLayer2Info();
             if (providerL2Info != null) {
@@ -319,7 +319,7 @@ public class TopologyManager extends Thread {
             Layer3Info providerL3Info = providerStp.getLayer3Info();
             if (providerL3Info != null) {
                 ServiceTerminationPoint customerStp = contract.getCustomerSTPs().get(0);
-                String customerPortUrn = NPSUtils.extractInterfaceUrn(customerStp.getId());
+                String customerPortUrn = customerStp.getId();
                 Resource resCustomerPort = model.getResource(customerPortUrn); // $$ null -> exception
                 Layer3Info customerL3Info = customerStp.getLayer3Info();
                 // create RoutingService 
@@ -407,20 +407,20 @@ public class TopologyManager extends Thread {
                 this.topologyOntModel.setNsPrefix("xsd", RdfOwl.getXsdURI());
                 this.topologyOntModel.setNsPrefix("nml", Nml.getURI());
                 this.topologyOntModel.setNsPrefix("mrs", Mrs.getURI());
-                this.topologyOntModel.add(this.topologyOntBaseModel);
+                // add base model (w/o inferenced / trivial ontologies)
+                this.topologyOntModel.add(this.topologyOntBaseModel.getBaseModel());
                 List<NPSContract> npsContracts = NPSGlobalState.getContractManager().getAll();
                 boolean hasNewModel = false;
                 synchronized (npsContracts) {
                     for (NPSContract contract: npsContracts) {
                         // all contracts count (active or in-process) 
-                        //?? Should failed count or be given special treatment ??
-                        //@@@@ comment out for debugging only
-                        if (contract.getStatus().contains("ROLLBACKED"))
-                            continue;
                         if (contract.getModifiedTime().after(lastestModelTime)) {
-                            addContractToOntModel(this.topologyOntModel, contract);
                             hasNewModel = true;
                         }
+                        if (contract.getStatus().contains("ROLLBACKED") || contract.getStatus().contains("TERMINATED"))
+                            continue;
+                        //?? Should the FAILED be counted or given special treatment ??
+                        addContractToOntModel(this.topologyOntModel, contract);
                     }
                 }
                 lastestModelTime = new Date();

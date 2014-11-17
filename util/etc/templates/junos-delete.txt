@@ -1,4 +1,4 @@
-<?xml version="version" encoding="encoding"?>
+<?xml version="1.0" encoding="us-ascii"?>
 <junoscript version="1.0" release="10.4">
 
 <rpc><lock-configuration /></rpc>

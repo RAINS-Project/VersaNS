@@ -1,4 +1,4 @@
-POST /services/NPService/ HTTP/1.1
+POST /VersaNS-0.0.1-SNAPSHOT/NPService HTTP/1.1
 User-Agent: wsdlpull/1.23
 Host: localhost:8080
 SOAPAction:
@@ -15,14 +15,14 @@ Content-Length: CONTENT_LENGTH
         <setup xmlns="http://maxgigapop.net/versans/nps/api/">
             <transactionId>trans-12345</transactionId>
             <description>test</description>
-            <serviceContract id="svc-dcn-10016" type="dcn-layer2">
-                <customerSTP id="urn:ogf:network:domain=dragon.maxgigapop.net:node=MAX:port=1-0-9:link=*">
+            <serviceContract id="svc-dcn-10013" type="dcn-layer2">
+                <customerSTP id="urn:ogf:network:domain=dragon.maxgigapop.net:node=MCLN:port=1-3-1:link=*">
                     <interfaceRef>customer-A-srcif</interfaceRef>
                     <layer2Info>
                         <outerVlanTag>any</outerVlanTag>            
                     </layer2Info>
                 </customerSTP>
-                <customerSTP id="urn:ogf:network:domain=dragon.maxgigapop.net:node=CLPK:port=1-0-4:link=*">
+                <customerSTP id="urn:ogf:network:domain=dragon.maxgigapop.net:node=CLPK:port=1-1-2:link=*">
                     <interfaceRef>customer-A-dstif</interfaceRef>
                     <layer2Info>
                         <outerVlanTag>any</outerVlanTag>            

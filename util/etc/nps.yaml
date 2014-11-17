@@ -12,7 +12,7 @@ devices:
         description: device1
         connector:
             login: jetstream
-            password: 'jetdev2'
+            password: 'pass'
             isstub: false
             commandlog: true
 #            logicalsystem: 'jetstream'
@@ -50,16 +50,16 @@ devices:
     DRAGON:
         urn: 'urn:ogf:network:domain=sdnx.maxgigapop.net:node=DRAGON'
         make_model: 'net.maxgigapop.versans.nps.device.OscarsDCN'
-        address: 'idc-new.maxgigapop.net'
+        address: 'idc.dragon.maxgigapop.net'
         description: 'DRAGON OSCARS DCN'
         connector:
-            idc_url: 'https://idc-new.maxgigapop.net:9001/OSCARS'
-            client_command: 'java -Done-jar.verbose=false -Done-jar.info=false -Done-jar.main.class=net.es.oscars.api.client.SimpleOSCARSClient -jar /etc/sdnx/nps/oscars/SimpleOSCARSClient-0.0.1-SNAPSHOT.one-jar.jar -f -'
-            client_keystore: '/etc/sdnx/nps/oscars/oscars-client.jks'
+            idc_url: 'https://idc.dragon.maxgigapop.net:9001/OSCARS'
+            client_command: 'java -Done-jar.verbose=false -Done-jar.info=false -Done-jar.main.class=net.es.oscars.api.client.SimpleOSCARSClient -jar /etc/versans/nps/oscars/SimpleOSCARSClient-0.0.1-SNAPSHOT.one-jar.jar -f -'
+            client_keystore: '/etc/versans/nps/oscars/oscars-client.jks'
             client_keystore_password: 'password'
             client_keystore_user: 'oscarsuser'
-            trust_keystore: '/etc/sdnx/nps/oscars/oscars-ssl.jks'
-            trust_keystore_password: 'oscars'
+            trust_keystore: '/etc/versans/nps/oscars/oscars-ssl.jks'
+            trust_keystore_password: 'password'
         interfaces:
             interface3-1:
                 urn: 'urn:ogf:network:domain=dragon.maxgigapop.net:node=MAX:port=1-0-8:link=*'
@@ -67,11 +67,14 @@ devices:
             interface3-2:
                 urn: 'urn:ogf:network:domain=dragon.maxgigapop.net:node=MAX:port=1-0-9:link=*'
                 description: interface3-2
-            interface3-3:
-                urn: 'urn:ogf:network:domain=dragon.maxgigapop.net:node=CLPK:port=1-0-4:link=*'
-                description: interface3-3
             interface3-4:
                 urn: 'urn:ogf:network:domain=dragon.maxgigapop.net:node=CLPK:port=1-2-3:link=*'
+                description: interface3-4
+            interface3-5:
+                urn: 'urn:ogf:network:domain=dragon.maxgigapop.net:node=CLPK:port=1-1-2:link=*'
+                description: interface3-4
+            interface3-6:
+                urn: 'urn:ogf:network:domain=dragon.maxgigapop.net:node=MCLN:port=1-3-1:link=*'
                 description: interface3-4
     SDN:
         urn: 'urn:ogf:network:domain=sdnx.maxgigapop.net:node=SDN'

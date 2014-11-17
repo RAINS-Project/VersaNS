@@ -15,7 +15,7 @@ Content-Length: CONTENT_LENGTH
         <setup xmlns="http://maxgigapop.net/versans/nps/api/">
             <transactionId>trans-12342</transactionId>
             <description>test</description>
-            <serviceContract id="svc-aws-11001" type="aws-layer3">
+            <serviceContract id="svc-aws-11003" type="aws-layer3">
                 <providerSTP id="urn:ogf:network:domain=sdnx.maxgigapop.net:node=MAX:port=fe-0/2/1">
                     <interfaceRef>customer-A-source</interfaceRef>
                     <layer2Info>
