@@ -21,6 +21,9 @@ import java.sql.Timestamp;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.Unmarshaller;
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  *
@@ -37,6 +40,7 @@ public class NPSContract implements java.io.Serializable {
     private String status = "";
     private String error = "";
     private Timestamp modifiedTime = null;
+    private String contractXml = "";
     private boolean deleted = false;
     
     public NPSContract() {}
@@ -120,6 +124,14 @@ public class NPSContract implements java.io.Serializable {
 
     public void setModifiedTime(Timestamp modifiedTime) {
         this.modifiedTime = modifiedTime;
+    }
+
+    public String getContractXml() {
+        return contractXml;
+    }
+
+    public void setContractXml(String contractXml) {
+        this.contractXml = contractXml;
     }
 
 }

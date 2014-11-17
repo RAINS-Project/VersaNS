@@ -80,14 +80,8 @@ public class NPServicePortTypeImpl implements NPServicePortType {
 			javax.xml.ws.Holder<java.lang.String> status,
 			javax.xml.ws.Holder<java.lang.String> message)
 			throws ServiceException {
-        String contractId = serviceContract.getId();
-        String contractType = serviceContract.getType();
-        ServiceTerminationPoint providerSTP = serviceContract.getProviderSTP();
-        List<ServiceTerminationPoint> customerSTPs = serviceContract.getCustomerSTP();
-        List<ServicePolicy> policies = serviceContract.getPolicyData();
         try {
-            status.value = NPSGlobalState.getContractManager().handleSetup(contractId, 
-                contractType, description, providerSTP, customerSTPs, policies);
+            status.value = NPSGlobalState.getContractManager().handleSetup(serviceContract, description);
             message.value = "";
         } catch (ServiceException se) {
             status.value = "FAILED";

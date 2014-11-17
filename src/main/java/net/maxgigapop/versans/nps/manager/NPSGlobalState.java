@@ -116,6 +116,7 @@ public class NPSGlobalState {
                 + "status VARCHAR(255) NOT NULL, "
                 + "error VARCHAR(255) NOT NULL, "
                 + "modifiedTime TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, "
+                + "contractXml TEXT NOT NULL, "
                 + "deleted int(1) NOT NULL DEFAULT 0, "
                 + "PRIMARY KEY (id)"
                 + ") ENGINE=InnoDB DEFAULT CHARSET=latin1");

@@ -1,13 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN" "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
 <hibernate-mapping>
-  <class name="net.maxgigapop.versans.nps.manager.NPSContract" table="contracts">
-    <id column="id" name="id"/>
-    <property column="description" name="description"/>
-    <property column="status" name="status"/>
-    <property column="error" name="error"/>
-    <property name="deleted" not-null="true">
-      <column name="deleted" not-null="true" sql-type="BOOLEAN"/>
-    </property>
-  </class>
+	<class name="net.maxgigapop.versans.nps.manager.NPSContract"
+		table="contracts">
+		<id column="id" name="id" />
+		<property column="description" name="description" />
+		<property column="status" name="status" />
+		<property column="error" name="error" />
+		<property column="modifiedTime" name="modifiedTime" not-null="true" />
+		<property column="contractXml" name="contractXml" />
+		<property name="deleted" not-null="true">
+		<column sql-type="BOOLEAN" not-null="true" name="deleted" />
+		</property>
+	</class>
 </hibernate-mapping>

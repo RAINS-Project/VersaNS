@@ -11,6 +11,7 @@ import net.maxgigapop.versans.nps.device.DeviceException;
 import net.maxgigapop.versans.nps.device.NetworkDeviceInstance;
 import net.maxgigapop.versans.nps.device.NetworkDeviceFactory;
 import net.maxgigapop.versans.nps.device.Interface;
+import net.maxgigapop.versans.nps.api.ServiceContract;
 import net.maxgigapop.versans.nps.api.ServiceTerminationPoint;
 import net.maxgigapop.versans.nps.api.ServicePolicy;
 import net.maxgigapop.versans.nps.api.ServiceException;
@@ -19,6 +20,10 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.xml.bind.JAXBException;
+import javax.xml.namespace.QName;
 import org.hibernate.Query;
 import org.hibernate.Session;
 
@@ -79,11 +84,13 @@ public class NPSContractManager extends Thread {
         }
     }
     
-    public String handleSetup(String contractId, String contractType,
-            String description, ServiceTerminationPoint providerSTP,
-            List<ServiceTerminationPoint> customerSTPs,
-            List<ServicePolicy> policies) throws ServiceException {
+    public String handleSetup(ServiceContract serviceContract, String description) throws ServiceException {
         log.info("NPSContractManager.handleSetup - start");
+        String contractId = serviceContract.getId();
+        String contractType = serviceContract.getType();
+        ServiceTerminationPoint providerSTP = serviceContract.getProviderSTP();
+        List<ServiceTerminationPoint> customerSTPs = serviceContract.getCustomerSTP();
+        List<ServicePolicy> policies = serviceContract.getPolicyData();
         
         NPSContract contract = this.getContractById(contractId);
         if (contract != null) {
@@ -145,6 +152,15 @@ public class NPSContractManager extends Thread {
         contract.setServicePolicies(refinedPolicies);
 
         contract.setStatus("PREPARING");
+
+        try {
+            // marshall contractXml
+            
+            contract.setContractXml(new JAXBHelper<ServiceContract>(ServiceContract.class).partialMarshal(serviceContract, new QName("http://maxgigapop.net/versans/nps/api/", "ServiceContract")));
+        } catch (JAXBException ex) {
+            log.error("Contract ID:" + contractId + " - fail to marshall into XML: " + ex.getMessage());
+            throw new ServiceException("Contract ID:" + contractId + " - fail to marshall into XML: " + ex.getMessage());
+        }
         
         // store contract object to DB
         this.addContract(contract);
@@ -382,6 +398,8 @@ public class NPSContractManager extends Thread {
             }
             contract.getDeviceProvisionSequence().add(ndi);
         }
+        
+        //$$ TODO: unmarshall contractXml and restore STP and Policy data
     }
 
 }

@@ -18,6 +18,7 @@ import org.apache.log4j.*;
 import com.hp.hpl.jena.ontology.OntModel;
 import com.hp.hpl.jena.ontology.OntModelSpec;
 import com.hp.hpl.jena.rdf.model.*;
+import java.io.StringReader;
 import net.maxgigapop.versans.nps.api.*;
 import net.maxgigapop.versans.nps.rest.model.*;
 import java.io.StringWriter;
@@ -30,6 +31,7 @@ public class TopologyManager extends Thread {
     private org.apache.log4j.Logger log;
     private Date lastestModelTime = new Date(0);
     private OntModel topologyOntBaseModel = null;
+    private OntModel topologyOntHeadModel = null;
     private OntModel topologyOntModel = null;
     private long pollInterval = 30000L; // 30 seconds
     private final Integer topologyOntModelLock = new Integer(0);
@@ -380,6 +382,13 @@ public class TopologyManager extends Thread {
 
     @Override
     public void run() {
+        // $$ TODO: reload this.topologyOntHeadModel
+        ModelBase modelBaseHead = NPSGlobalState.getModelStore().getHead();
+        if (modelBaseHead != null) {
+            this.topologyOntHeadModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_MEM_MICRO_RULE_INF);
+            StringReader ttlReader = new StringReader(modelBaseHead.getTtlModel());
+            this.topologyOntHeadModel.read(ttlReader, null, "TURTLE");
+        }
         // 1. create base ontology model from deviceStore and interfaceStore
         if (this.topologyOntBaseModel == null) {
             // $$ TODO: only maintain list of statements and add these to topologyOntModel? 
@@ -410,21 +419,17 @@ public class TopologyManager extends Thread {
                 // add base model (w/o inferenced / trivial ontologies)
                 this.topologyOntModel.add(this.topologyOntBaseModel.getBaseModel());
                 List<NPSContract> npsContracts = NPSGlobalState.getContractManager().getAll();
-                boolean hasNewModel = false;
                 synchronized (npsContracts) {
                     for (NPSContract contract: npsContracts) {
-                        // all contracts count (active or in-process) 
-                        if (contract.getModifiedTime().after(lastestModelTime)) {
-                            hasNewModel = true;
-                        }
                         if (contract.getStatus().contains("ROLLBACKED") || contract.getStatus().contains("TERMINATED"))
                             continue;
                         //?? Should the FAILED be counted or given special treatment ??
                         addContractToOntModel(this.topologyOntModel, contract);
                     }
-                }
-                lastestModelTime = new Date();
-                if (hasNewModel) { // ?? store every model or not ??
+                }                
+                if (this.topologyOntHeadModel == null
+                    || (this.topologyOntHeadModel != null && this.topologyOntModel != this.topologyOntHeadModel
+                        && !this.topologyOntModel.isIsomorphicWith(this.topologyOntHeadModel))) {
                     ModelBase newModel = new ModelBase();
                     StringWriter ttlWriter = new StringWriter();
                     this.topologyOntModel.write(ttlWriter, "TURTLE");
@@ -432,8 +437,10 @@ public class TopologyManager extends Thread {
                     newModel.setVersion(UUID.randomUUID().toString());
                     newModel.setStatus("ACTIVE");
                     NPSGlobalState.getModelStore().add(newModel);
+                    this.topologyOntHeadModel = this.topologyOntModel;
+                    lastestModelTime = new Date();
                 }
-            }
+             }
         }
     }
 }

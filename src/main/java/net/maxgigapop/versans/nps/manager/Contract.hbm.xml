@@ -7,7 +7,8 @@
 		<property column="description" name="description" />
 		<property column="status" name="status" />
 		<property column="error" name="error" />
-		<property column="modifiedTime" name="modifiedTime" />
+		<property column="modifiedTime" name="modifiedTime" not-null="true" />
+		<property column="contractXml" name="contractXml" />
 		<property name="deleted" not-null="true">
 		<column sql-type="BOOLEAN" not-null="true" name="deleted" />
 		</property>
