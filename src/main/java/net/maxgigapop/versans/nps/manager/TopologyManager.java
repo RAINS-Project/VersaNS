@@ -244,10 +244,11 @@ public class TopologyManager extends Thread {
         }
         return model;
     }
-    
+
     public void addContractToOntModel(OntModel model, NPSContract contract) {
         Resource resSubnet = null;
         Resource resNode = null;
+        Resource resCustomerSubIf = null;
         for (ServiceTerminationPoint stp: contract.getCustomerSTPs()) {
             String portUrn = stp.getId();
             Layer2Info l2info = stp.getLayer2Info();
@@ -283,18 +284,18 @@ public class TopologyManager extends Thread {
                     }
                 }
                 //create sub-interface BidirectionalPort for outerVlan
-                Resource resSubIf = RdfOwl.createResource(model, portUrn + ":vlan-" + outerVlan.getValue(), Nml.BidirectionalPort);
-                model.add(model.createStatement(resNode, Nml.hasBidirectionalPort, resSubIf));
+                resCustomerSubIf = RdfOwl.createResource(model, portUrn + ":vlan-" + outerVlan.getValue(), Nml.BidirectionalPort);
+                model.add(model.createStatement(resNode, Nml.hasBidirectionalPort, resCustomerSubIf));
                 //add Nml.Label for resSubIf
                 Resource resSubIfLabel = RdfOwl.createResource(model, portUrn + ":vlan-" + outerVlan.getValue()+":label", Nml.Label);
-                model.add(model.createStatement(resSubIf, Nml.hasLabel, resSubIfLabel));
+                model.add(model.createStatement(resCustomerSubIf, Nml.hasLabel, resSubIfLabel));
                 model.add(model.createStatement(resSubIfLabel, Nml.labeltype, model.createResource("http://schemas.ogf.org/nml/2012/10/ethernet#vlan")));
                 model.add(model.createStatement(resSubIfLabel, Nml.value, outerVlan.getValue()));
 
                 //add sub-interface BidirectionalPort to the SwitchingSubnet
                 if (contract.getProviderSTP() == null) {
-                    model.add(model.createStatement(resSubnet, Nml.hasBidirectionalPort, resSubIf));
-                    model.add(model.createStatement(resSubIf, Nml.belongsTo, resSubnet));
+                    model.add(model.createStatement(resSubnet, Nml.hasBidirectionalPort, resCustomerSubIf));
+                    model.add(model.createStatement(resCustomerSubIf, Nml.belongsTo, resSubnet));
                 }
             }
         }
@@ -303,17 +304,18 @@ public class TopologyManager extends Thread {
             String providerPortUrn = providerStp.getId();
             Resource resProviderPort = model.getResource(providerPortUrn); // $$ null -> exception
             Layer2Info providerL2Info = providerStp.getLayer2Info();
+            Resource resProviderSubIf = null;
             if (providerL2Info != null) {
                 VlanTag outerVlan = providerL2Info.getOuterVlanTag();
                 //?? VlanTag innerVlan =  l2info.getInnerVlanTag();
-                Resource resSubIf = RdfOwl.createResource(model, providerPortUrn + ":vlan-" + outerVlan.getValue(), Nml.BidirectionalPort);
+                resProviderSubIf = RdfOwl.createResource(model, providerPortUrn + ":vlan-" + outerVlan.getValue(), Nml.BidirectionalPort);
                  //add Nml.Label for resSubIf
                 Resource resSubIfLabel = RdfOwl.createResource(model, providerPortUrn + ":vlan-" + outerVlan.getValue()+":label", Nml.Label);
-                model.add(model.createStatement(resSubIf, Nml.hasLabel, resSubIfLabel));
+                model.add(model.createStatement(resProviderSubIf, Nml.hasLabel, resSubIfLabel));
                 model.add(model.createStatement(resSubIfLabel, Nml.labeltype, model.createResource("http://schemas.ogf.org/nml/2012/10/ethernet#vlan")));
                 model.add(model.createStatement(resSubIfLabel, Nml.value, outerVlan.getValue()));
                // add sub-interface BidirectionalPort to the Node (and ?SwitchingSubnet?)
-                model.add(model.createStatement(resNode, Nml.hasBidirectionalPort, resSubIf));
+                model.add(model.createStatement(resNode, Nml.hasBidirectionalPort, resProviderSubIf));
                 //$$ we should not create subnet for a l3routing cross-connect contract
                 //model.add(model.createStatement(resSubnet, Nml.hasBidirectionalPort, resSubIf));
                 //model.add(model.createStatement(resSubIf, Nml.belongsTo, resSubnet));
@@ -362,7 +364,7 @@ public class TopologyManager extends Thread {
                     // from: customer bgp-asn + bgp-local-ip/30 + prefix-list + resSubIf
                     model.add(model.createStatement(resRtToProvider, Mrs.routeFrom, resNetAddrCustomerASN));
                     model.add(model.createStatement(resRtToProvider, Mrs.routeFrom, resNetAddrCustomerRmtIfIp));
-                    model.add(model.createStatement(resRtToProvider, Mrs.routeFrom, resCustomerPort));
+                    model.add(model.createStatement(resRtToProvider, Mrs.routeFrom, resCustomerSubIf));
                     Resource resNetAddrCustomerPrefixList = RdfOwl.createResource(model, String.format("%s:aid-%d", rtToCustomerUri, netAddrNo++), Mrs.NetworkAddress);
                     model.add(model.createStatement(resNetAddrCustomerPrefixList, Mrs.type, "bgp-prefix-list"));
                     model.add(model.createStatement(resNetAddrCustomerPrefixList, Mrs.value, NPSUtils.concatStringsWSep(customerL3Info.getBgpInfo().getPeerIpPrefix(), ",")));
@@ -370,7 +372,7 @@ public class TopologyManager extends Thread {
                     // add the other Route (resRtToCustomer) from: provider bgp-asn + bgp-local-ip/30 + prefix-list + resSubIf
                     model.add(model.createStatement(resRtToCustomer, Mrs.routeFrom, resNetAddrProviderASN));
                     model.add(model.createStatement(resRtToCustomer, Mrs.routeFrom, resNetAddrProviderRmtIfIp));
-                    model.add(model.createStatement(resRtToCustomer, Mrs.routeFrom, resProviderPort));
+                    model.add(model.createStatement(resRtToCustomer, Mrs.routeFrom, resProviderSubIf));
                     Resource resNetAddrProviderPrefixList = RdfOwl.createResource(model, String.format("%s:aid-%d", rtToProviderUri, netAddrNo++), Mrs.NetworkAddress);
                     model.add(model.createStatement(resNetAddrProviderPrefixList, Mrs.type, "bgp-prefix-list"));
                     model.add(model.createStatement(resNetAddrProviderPrefixList, Mrs.value, NPSUtils.concatStringsWSep(providerL3Info.getBgpInfo().getPeerIpPrefix(), ",")));
