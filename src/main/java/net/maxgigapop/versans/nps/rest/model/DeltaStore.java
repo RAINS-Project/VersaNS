@@ -27,8 +27,8 @@ public class DeltaStore {
 
     public synchronized boolean add(DeltaBase n) {
         synchronized (this) {
-            if (n.getTargetVersion().isEmpty() || n.getReferenceVersion().isEmpty()) {
-                throw new IllegalArgumentException("DeltaBase object must have valid targetVersion and referenceVersion fields");
+            if (n.getReferenceVersion().isEmpty()) {
+                throw new IllegalArgumentException("DeltaBase object must have valid referenceVersion!");
             }
             try {
                 session = HibernateUtil.getSessionFactory().openSession();
@@ -51,8 +51,9 @@ public class DeltaStore {
 
     public synchronized boolean update(DeltaBase n) {
         synchronized (this) {
-            if (n.getTargetVersion().isEmpty() || n.getReferenceVersion().isEmpty()) {
-                throw new IllegalArgumentException("DeltaBase object must have valid targetVersion and referenceVersion fields");            }
+            if (n.getReferenceVersion().isEmpty()) {
+                throw new IllegalArgumentException("DeltaBase object must have valid referenceVersion!");
+            }
             try {
                 session = HibernateUtil.getSessionFactory().openSession();
                 tx = session.beginTransaction();
@@ -142,15 +143,15 @@ public class DeltaStore {
 
 
     /**
-     * get by targetVersion
+     * get by referenceVersion
      */
-    public synchronized DeltaBase getByTargetVersion(String targetVersion) {
+    public synchronized DeltaBase getByIdWithReferenceVersion(String referenceVersion, long id) {
         synchronized (this) {
             try {
                 session = HibernateUtil.getSessionFactory().openSession();
                 tx = session.beginTransaction();
-                Query q = session.createQuery("from DeltaBase as delta where delta.targetVersion='" 
-                        + targetVersion + "'");
+                Query q = session.createQuery(String.format("from DeltaBase as delta where delta.referenceVersion='%s' and delta.id=%d", 
+                        referenceVersion, id));
                 if (q.list().size() == 0) {
                     return null;
                 }

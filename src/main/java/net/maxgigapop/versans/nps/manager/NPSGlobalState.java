@@ -158,11 +158,10 @@ public class NPSGlobalState {
                 + "id int(11) NOT NULL auto_increment, "
                 + "creationTime DATETIME NOT NULL, "
                 + "referenceVersion VARCHAR(255) NOT NULL, "
-                + "targetVersion VARCHAR(255) NOT NULL, "
                 + "modelAddition LONGTEXT NOT NULL, "
                 + "modelReduction LONGTEXT NOT NULL, "
                 + "status VARCHAR(255) NOT NULL, "
-                + "PRIMARY KEY (id, targetVersion)"
+                + "PRIMARY KEY (id, referenceVersion)"
                 + ") ENGINE=InnoDB DEFAULT CHARSET=latin1");
     }
 

@@ -45,11 +45,11 @@ public class DeltaResource {
      */
     @GET
     @Produces({"application/xml", "application/json"})
-    @Path("{targetVersion}")
-    public String query(@PathParam("targetVersion") String targetVersion) throws NotFoundException {
-        DeltaBase delta = NPSGlobalState.getDeltaStore().getByTargetVersion(targetVersion);
+    @Path("{referenceVersion}/{id}")
+    public String query(@PathParam("referenceVersion") String referenceVersion, @PathParam("id") long id) throws NotFoundException {
+        DeltaBase delta = NPSGlobalState.getDeltaStore().getByIdWithReferenceVersion(referenceVersion, id);
         if (delta == null)
-            throw new NotFoundException(String.format("Unknown targetVersion='%s'", targetVersion));
+            throw new NotFoundException(String.format("Unknown Delta id=%d with referenceVersion='%s'", id, referenceVersion));
         return delta.getStatus();
     }
 
@@ -75,14 +75,14 @@ public class DeltaResource {
      */
     @PUT
     @Consumes({"application/xml", "application/json"})
-    @Path("{targetVersion}")
-    public String commit(@PathParam("targetVersion") String targetVersion) throws NotFoundException {
-        DeltaBase delta = NPSGlobalState.getDeltaStore().getByTargetVersion(targetVersion);
+    @Path("{referenceVersion}/{id}")
+    public String commit(@PathParam("referenceVersion") String referenceVersion, @PathParam("id") long id) throws NotFoundException {
+        DeltaBase delta = NPSGlobalState.getDeltaStore().getByIdWithReferenceVersion(referenceVersion, id);
         if (delta == null)
-            throw new NotFoundException(String.format("Unknown targetVersion='%s'", targetVersion));
+            throw new NotFoundException(String.format("Unknown Delta id=%d with referenceVersion='%s'", id, referenceVersion));
 
         //$$ TODO: execute commit logic
-        
+
         return delta.getStatus();
     }
 }

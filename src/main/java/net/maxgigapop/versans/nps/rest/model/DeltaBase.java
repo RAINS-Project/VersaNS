@@ -18,8 +18,6 @@ public class DeltaBase {
     @XmlElement(required=true)
     protected String referenceVersion = "";
     @XmlElement(required=true) 
-    protected String targetVersion = "";
-    @XmlElement(required=true) 
     protected String modelReduction = null;
     @XmlElement(required=true) 
     protected String modelAddition = null;
@@ -64,14 +62,6 @@ public class DeltaBase {
 
     public void setReferenceVersion(String referenceVersion) {
         this.referenceVersion = referenceVersion;
-    }
-
-    public String getTargetVersion() {
-        return targetVersion;
-    }
-
-    public void setTargetVersion(String targetVersion) {
-        this.targetVersion = targetVersion;
     }
 
     public String getStatus() {
