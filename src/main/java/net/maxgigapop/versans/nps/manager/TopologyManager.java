@@ -228,6 +228,12 @@ public class TopologyManager extends Thread {
             model.add(model.createStatement(resSwSvc, Nml.encoding, model.createResource("http://schemas.ogf.org/nml/2012/10/ethernet#vlan")));
             model.add(model.createStatement(resSwSvc, Nml.labelSwapping, "false"));
             model.add(model.createStatement(resNode, Nml.hasService, resSwSvc));
+            if (dev.getMakeModel().contains("Router")) {
+                Resource resRtSvc = RdfOwl.createResource(model, resNode.getURI() + ":l3routing", Mrs.RoutingService);
+                model.add(model.createStatement(resNode, Nml.hasService, resRtSvc));
+                //$$ add localAddress or hasNetworkAddress property?
+                //$$ add other RoutingService properties?
+            }
             for (Interface intf: devIfs) {
                 Resource resPort = RdfOwl.createResource(model, intf.getUrn(), Nml.BidirectionalPort);
                 model.add(model.createStatement(resNode, Nml.hasBidirectionalPort, resPort));
@@ -291,7 +297,6 @@ public class TopologyManager extends Thread {
                 model.add(model.createStatement(resCustomerSubIf, Nml.hasLabel, resSubIfLabel));
                 model.add(model.createStatement(resSubIfLabel, Nml.labeltype, model.createResource("http://schemas.ogf.org/nml/2012/10/ethernet#vlan")));
                 model.add(model.createStatement(resSubIfLabel, Nml.value, outerVlan.getValue()));
-
                 //add sub-interface BidirectionalPort to the SwitchingSubnet
                 if (contract.getProviderSTP() == null) {
                     model.add(model.createStatement(resSubnet, Nml.hasBidirectionalPort, resCustomerSubIf));
@@ -326,11 +331,9 @@ public class TopologyManager extends Thread {
                 String customerPortUrn = customerStp.getId();
                 Resource resCustomerPort = model.getResource(customerPortUrn); // $$ null -> exception
                 Layer3Info customerL3Info = customerStp.getLayer3Info();
-                // create RoutingService 
-                Resource resRtSvc = RdfOwl.createResource(model, resNode.getURI() + ":l3routing", Mrs.RoutingService);
-                model.add(model.createStatement(resNode, Nml.hasService, resRtSvc));
-                //$$ add localAddress property ?
-                //$$ add other RoutingService properties
+                // get RoutingService 
+                Resource resRtSvc = model.getResource(resNode.getURI() + ":l3routing");
+                //$$ if (resRtSvc == null) throw exception
                 // add Route from provider to customer
                 String rtToCustomerUri = resNode.getURI() + ":l3route:" + contract.getId() + ":p2c";
                 Resource resRtToCustomer = RdfOwl.createResource(model, rtToCustomerUri, Mrs.Route);
