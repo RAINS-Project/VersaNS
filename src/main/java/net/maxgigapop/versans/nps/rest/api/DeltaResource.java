@@ -19,6 +19,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
@@ -195,6 +197,18 @@ public class DeltaResource {
         if (delta == null)
             throw new NotFoundException(String.format("Unknown Delta id=%d with referenceVersion='%s'", id, referenceVersion));
 
+        // commitTeardown
+        for (NPSContract contract: NPSGlobalState.getContractManager().getAll()) {
+            // search deletingDeltaTags
+            if (contract.getDeletingDeltaTags() != null && contract.getDeletingDeltaTags().contains(String.format("%s-%d", delta.getReferenceVersion(), delta.getId()))) {
+                try {
+                    NPSGlobalState.getContractManager().deleteContract(contract);
+                } catch (ServiceException ex) {
+                    throw new InternalServerErrorException(String.format("Failed to commit delta when deleting sub-level contract '%s'", contract.getId()));
+                }
+            }
+        }
+        
         // find all contracts with id.contains(delta.referenceVersion+"-"+delta.id) as well as contractRunners
         List<NPSContract> contractList = NPSGlobalState.getContractManager().getContractByIdContains(String.format("%s-%d", delta.getReferenceVersion(), delta.getId()));
         
@@ -202,18 +216,19 @@ public class DeltaResource {
             throw new InternalServerErrorException(String.format("There is none reserved contract for Delta id=%d with referenceVersion='%s'", id, referenceVersion));
         }
         
-        //$$ TODO: commitTeardown
-            // search deletingDeltaTags
-        // commitSetup
-        for (NPSContract contract: contractList) {
+        // commitSetup        
+        for (NPSContract newContract: contractList) {
             try {
-                NPSGlobalState.getContractManager().commitSetup(contract);
+                if (newContract.getStatus().equals("PREPARING")) {
+                    NPSGlobalState.getContractManager().commitSetup(newContract);
+                }
             } catch (ServiceException ex) {
                 delta.setStatus("COMMIT_FAILED");
                 NPSGlobalState.getDeltaStore().update(delta);
-                throw new InternalServerErrorException(String.format("Failed to commit delta for sub-level contract='%s'", contract.getId()));
+                throw new InternalServerErrorException(String.format("Failed to commit delta when provisoning sub-level contract '%s'", newContract.getId()));
             }
         }
+        
         delta.setStatus("COMMITTED");
         NPSGlobalState.getDeltaStore().update(delta);
         return delta.getStatus();
@@ -397,7 +412,7 @@ public class DeltaResource {
                         l2infoP = l2info2;
                         l2infoC = l2info1;
                     }
-                    //$$ TODO: create provider STP
+                    // create provider STP
                     ServiceTerminationPoint stpProvider = new ServiceTerminationPoint();
                     stpProvider.setId(routeP2C.get("urn"));
                     stpProvider.setInterfaceRef(routeP2C.get("urn"));
@@ -414,7 +429,7 @@ public class DeltaResource {
                     bgpInfoP.getPeerIpPrefix().addAll(Arrays.asList(bgpPrefixeArray));
                     l3infoP.setBgpInfo(bgpInfoP);
                     stpProvider.setLayer3Info(l3infoP);
-                    //$$ TODO: create customer STP
+                    // create customer STP
                     ServiceTerminationPoint stpCustomer = new ServiceTerminationPoint();
                     stpCustomer.setId(routeC2P.get("urn"));
                     stpCustomer.setInterfaceRef(routeC2P.get("urn"));

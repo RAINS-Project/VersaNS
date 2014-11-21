@@ -396,7 +396,7 @@ public class TopologyManager extends Thread {
 
     @Override
     public void run() {
-        // $$ TODO: reload this.topologyOntHeadModel
+        // reload this.topologyOntHeadModel
         ModelBase modelBaseHead = NPSGlobalState.getModelStore().getHead();
         if (modelBaseHead != null) {
             this.topologyOntHeadModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_MEM_MICRO_RULE_INF);
