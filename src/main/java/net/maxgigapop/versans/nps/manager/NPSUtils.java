@@ -157,6 +157,24 @@ public class NPSUtils {
         return null;
     }
     
+    public static String getSlash30Peer(String prefix) {
+        String pattern = "(\\d{1,3}\\.\\d{1,3}\\.\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})";
+        Pattern compiledPattern = Pattern.compile(pattern);
+        if (compiledPattern == null)
+            return null;
+        Matcher matcher = compiledPattern.matcher(prefix);
+        if (matcher.find()) {
+            int ip4th = Integer.valueOf(matcher.group(2));
+            if (ip4th % 2 == 1)
+                ip4th += 1;
+            else
+                ip4th -= 1;
+            int mask = Integer.valueOf(matcher.group(3));
+            return String.format("%s.%d/%d", matcher.group(1), ip4th, mask);
+        }
+        return null;
+    }    
+    
     public static long bandwdithToBps(String bwString) {
         long ret = 0;
         Pattern pattern = Pattern.compile("(\\d+)([mM]|[gG]|[kK]|[bB]).*");

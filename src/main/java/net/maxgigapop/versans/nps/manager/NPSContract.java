@@ -43,6 +43,8 @@ public class NPSContract implements java.io.Serializable {
     private String contractXml = "";
     private boolean deleted = false;
     
+    private List<String> deletingDeltaTags = null;
+    
     public NPSContract() {}
 
     public String getId() {
@@ -132,6 +134,14 @@ public class NPSContract implements java.io.Serializable {
 
     public void setContractXml(String contractXml) {
         this.contractXml = contractXml;
+    }
+
+    public List<String> getDeletingDeltaTags() {
+        return deletingDeltaTags;
+    }
+
+    public void setDeletingDeltaTags(List<String> deletingDeltaTags) {
+        this.deletingDeltaTags = deletingDeltaTags;
     }
 
 }

@@ -5,8 +5,6 @@
  */
 package net.maxgigapop.versans.nps.rest.api;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 import javax.ws.rs.Consumes;
@@ -17,7 +15,6 @@ import javax.ws.rs.NotFoundException;
 import javax.ws.rs.POST;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import net.maxgigapop.versans.nps.api.ServiceException;
 import net.maxgigapop.versans.nps.manager.NPSGlobalState;
 import net.maxgigapop.versans.nps.rest.model.ModelBase;
 

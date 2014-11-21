@@ -84,8 +84,8 @@ public class NPSContractManager extends Thread {
         }
     }
     
-    public String handleSetup(ServiceContract serviceContract, String description) throws ServiceException {
-        log.info("NPSContractManager.handleSetup - start");
+    public String handleSetup(ServiceContract serviceContract, String description, boolean reserveOnly) throws ServiceException {
+        log.info("NPSContractManager.handleSetup - start" + (reserveOnly?" (reserveOnly)":""));
         String contractId = serviceContract.getId();
         String contractType = serviceContract.getType();
         ServiceTerminationPoint providerSTP = serviceContract.getProviderSTP();
@@ -155,7 +155,6 @@ public class NPSContractManager extends Thread {
 
         try {
             // marshall contractXml
-            
             contract.setContractXml(new JAXBHelper<ServiceContract>(ServiceContract.class).partialMarshal(serviceContract, new QName("http://maxgigapop.net/versans/nps/api/", "ServiceContract")));
         } catch (JAXBException ex) {
             log.error("Contract ID:" + contractId + " - fail to marshall into XML: " + ex.getMessage());
@@ -164,21 +163,28 @@ public class NPSContractManager extends Thread {
         
         // store contract object to DB
         this.addContract(contract);
-        
+        // commit to provision the contract
+        if (!reserveOnly) {
+            commitSetup(contract);
+        }
+
+        log.info("NPSContractManager.handleSetup - end" + (reserveOnly?" (reserveOnly)":""));
+
+        updateContract(contract);
+        return contract.getStatus();
+    }
+
+
+    public void commitSetup(NPSContract contract) throws ServiceException {
         // construct and set off NPSContractRunner
         NPSContractRunner contractRunner = new NPSContractRunner(this, contract);
         synchronized(npsRunnerThreads) {
             npsRunnerThreads.add(contractRunner);
         }
-        
         contractRunner.setPollInterval(NPSGlobalState.getPollInterval());
         contract.setStatus("STARTING");
         contractRunner.start();
 
-        log.info("NPSContractManager.handleSetup - end");
-
-        updateContract(contract);
-        return contract.getStatus();
     }
 
     public String handleTeardown(String contractId) throws ServiceException {
@@ -243,6 +249,62 @@ public class NPSContractManager extends Thread {
         contract.setModifiedTime(tsNow);
     }
 
+
+    public void deleteContract(NPSContract contract) throws ServiceException {
+        synchronized(npsContracts) {
+            try {
+                contract.setDeleted(true);
+                session = HibernateUtil.getSessionFactory().openSession();
+                tx = session.beginTransaction();
+                session.delete(contract);
+                session.flush();
+                tx.commit();
+            } catch (Exception e) {
+                tx.rollback();
+                contract.setStatus("FAILED");
+                throw new ServiceException("NPSContractManager.deleteContract (" 
+                        + contract.getId() + ") failed for DB error: "
+                        + e.getMessage());
+            } finally {
+                if (session.isOpen()) {
+                    session.close();
+                }
+            }
+            npsContracts.remove(contract);
+        }
+    }
+
+    public void addMultipleContracts(List<NPSContract> contractList) throws ServiceException {
+        synchronized(npsContracts) {
+            try {
+                session = HibernateUtil.getSessionFactory().openSession();
+                tx = session.beginTransaction();
+                for (NPSContract contract: contractList) {
+                    session.save(contract);
+                }
+                session.flush();
+                tx.commit();
+            } catch (Exception e) {
+                tx.rollback();
+                for (NPSContract contract : contractList) {
+                    contract.setStatus("FAILED");
+                }
+                throw new ServiceException("NPSContractManager.addMultipleContracts failed for DB error: "
+                        + e.getMessage());
+            } finally {
+                if (session.isOpen()) {
+                    session.close();
+                }
+            }
+            npsContracts.addAll(contractList);
+        }
+        Date now = new Date();
+        Timestamp tsNow = new Timestamp(now.getTime());
+        for (NPSContract contract : contractList) {
+            contract.setModifiedTime(tsNow);
+        }
+    }
+    
     public void updateContract(NPSContract contract) throws ServiceException {
         synchronized(npsContracts) {
             if (contract!= null || !contract.getId().isEmpty()) {
@@ -316,6 +378,39 @@ public class NPSContractManager extends Thread {
         return null;
     }
 
+
+    public List<NPSContract> getContractByIdContains(String containedStr) {
+        synchronized (npsContracts) {
+            List<NPSContract> contractList = null;
+            for (NPSContract ct: npsContracts) {
+                if (ct.getId().contains(containedStr)) {
+                    if (contractList == null)
+                        contractList = new ArrayList<NPSContract>();
+                    contractList.add(ct);
+                }
+            }
+            if (contractList != null && !contractList.isEmpty()) {
+                return contractList;
+            }
+            try {
+                session = HibernateUtil.getSessionFactory().openSession();
+                tx = session.beginTransaction();
+                Query q = session.createQuery("from NPSContract as contract where" 
+                        + " contract.id like '%" + containedStr + "%'");
+                if (q.list().size() > 0) {
+                    contractList = (List<NPSContract>)q.list();
+                    npsContracts.addAll(contractList);
+                }
+            } catch (Exception e) {
+                tx.rollback();
+                e.printStackTrace();
+            } finally {
+                if (session.isOpen()) session.close();
+            }
+        }
+        return null;
+    }
+    
     // contracts in PREPARING status are set to FAILED
     // resurrect threads for contracts in ACTIVE, STARTING and INSETUP status in goRun=true mode
     // contracts in TERMINATING status have thread with goRun=false 

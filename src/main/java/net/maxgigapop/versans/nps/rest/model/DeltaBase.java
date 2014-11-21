@@ -24,6 +24,9 @@ public class DeltaBase {
     @XmlElement(required=true) 
     protected String status = "";
 
+    //$$ TODO: add client id to make unique delta for multi-clients
+        // or change id long -> string / uuid
+
     public Long getId() {
         return id;
     }

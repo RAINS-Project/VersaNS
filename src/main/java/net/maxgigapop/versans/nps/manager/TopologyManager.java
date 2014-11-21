@@ -28,10 +28,11 @@ import java.io.StringWriter;
  * @author xyang
  */ 
 public class TopologyManager extends Thread {
-    private org.apache.log4j.Logger log;
+    private final org.apache.log4j.Logger log;
     private Date lastestModelTime = new Date(0);
     private OntModel topologyOntBaseModel = null;
     private OntModel topologyOntHeadModel = null;
+    private String topologyOntHeadModelVersion = "";
     private OntModel topologyOntModel = null;
     private long pollInterval = 30000L; // 30 seconds
     private final Integer topologyOntModelLock = new Integer(0);
@@ -60,6 +61,14 @@ public class TopologyManager extends Thread {
         synchronized(this.topologyOntModelLock) {
             return topologyOntModel;
         }
+    }
+
+    public OntModel getTopologyOntHeadModel() {
+        return topologyOntHeadModel;
+    }
+
+    public String getTopologyOntHeadModelVersion() {
+        return topologyOntHeadModelVersion;
     }
     
     // parse a topology configure file (yaml or xml)
@@ -283,7 +292,7 @@ public class TopologyManager extends Thread {
                     //$$: if (resSwSvc == null || resNode == null) throw exception;
                     // do not create subnet for l3routing contract
                     if (contract.getProviderSTP() == null) {
-                        resSubnet = RdfOwl.createResource(model, resSwSvc.getURI() + ":" + contract.getId()+"-vlan", Mrs.SwitchingSubnet);
+                        resSubnet = RdfOwl.createResource(model, resSwSvc.getURI() + ":" + contract.getId()+":vlan", Mrs.SwitchingSubnet);
                         model.add(model.createStatement(resSwSvc, Mrs.providesSubnet, resSubnet));
                         model.add(model.createStatement(resSubnet, Nml.encoding, model.createResource("http://schemas.ogf.org/nml/2012/10/ethernet#vlan")));
                         model.add(model.createStatement(resSubnet, Nml.labelSwapping, "false"));
@@ -335,7 +344,7 @@ public class TopologyManager extends Thread {
                 Resource resRtSvc = model.getResource(resNode.getURI() + ":l3routing");
                 //$$ if (resRtSvc == null) throw exception
                 // add Route from provider to customer
-                String rtToCustomerUri = resNode.getURI() + ":l3route:" + contract.getId() + ":p2c";
+                String rtToCustomerUri = resRtSvc.getURI() + ":" + contract.getId() + ":p2c";
                 Resource resRtToCustomer = RdfOwl.createResource(model, rtToCustomerUri, Mrs.Route);
                 model.add(model.createStatement(resRtSvc, Mrs.providesRoute, resRtToCustomer));
                 int netAddrNo = 1;
@@ -350,7 +359,7 @@ public class TopologyManager extends Thread {
                 model.add(model.createStatement(resNetAddrCustomerRmtIfIp, Mrs.value, customerL3Info.getBgpInfo().getLinkRemoteIpAndMask()));
                 model.add(model.createStatement(resRtToCustomer, Mrs.nextHop, resNetAddrCustomerRmtIfIp));
                 // add Route from customer to provider 
-                String rtToProviderUri = resNode.getURI() + ":l3route:" + contract.getId() + ":c2p";
+                String rtToProviderUri = resRtSvc.getURI() + ":" + contract.getId() + ":c2p";
                 if (customerL3Info != null && customerL3Info.getBgpInfo() != null) {
                     Resource resRtToProvider = RdfOwl.createResource(model, rtToProviderUri, Mrs.Route);
                     model.add(model.createStatement(resRtSvc, Mrs.providesRoute, resRtToProvider));
@@ -393,6 +402,7 @@ public class TopologyManager extends Thread {
             this.topologyOntHeadModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_MEM_MICRO_RULE_INF);
             StringReader ttlReader = new StringReader(modelBaseHead.getTtlModel());
             this.topologyOntHeadModel.read(ttlReader, null, "TURTLE");
+            this.topologyOntHeadModelVersion = modelBaseHead.getVersion();
         }
         // 1. create base ontology model from deviceStore and interfaceStore
         this.topologyOntBaseModel = this.createTopologyBaseModel();
@@ -405,6 +415,9 @@ public class TopologyManager extends Thread {
             baseModel.setVersion(UUID.randomUUID().toString());
             baseModel.setStatus("ACTIVE");
             NPSGlobalState.getModelStore().add(baseModel);
+            this.topologyOntHeadModel = topologyOntBaseModel;
+            this.topologyOntHeadModelVersion = baseModel.getVersion();
+            lastestModelTime = new Date();
         }
         // 2. poll all contracts 
         while (true) {
@@ -443,6 +456,7 @@ public class TopologyManager extends Thread {
                     newModel.setStatus("ACTIVE");
                     NPSGlobalState.getModelStore().add(newModel);
                     this.topologyOntHeadModel = this.topologyOntModel;
+                    this.topologyOntHeadModelVersion = newModel.getVersion();
                     lastestModelTime = new Date();
                 }
              }
