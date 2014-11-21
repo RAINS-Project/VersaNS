@@ -69,7 +69,7 @@ public class ModelResource {
      */
     @PUT
     @Consumes({"application/xml", "application/json"})
-    @Path("{version}")
+    @Path("/{version}")
     public String commit(@PathParam("version") String version) {
         throw new UnsupportedOperationException();
     }

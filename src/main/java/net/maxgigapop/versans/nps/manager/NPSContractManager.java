@@ -183,8 +183,8 @@ public class NPSContractManager extends Thread {
         }
         contractRunner.setPollInterval(NPSGlobalState.getPollInterval());
         contract.setStatus("STARTING");
+        updateContract(contract);
         contractRunner.start();
-
     }
 
     public String handleTeardown(String contractId) throws ServiceException {
@@ -379,6 +379,40 @@ public class NPSContractManager extends Thread {
     }
 
 
+    public List<NPSContract> getContractByDescriptionContains(String containedStr) {
+        synchronized (npsContracts) {
+            List<NPSContract> contractList = null;
+            for (NPSContract ct: npsContracts) {
+                if (ct.getId().contains(containedStr)) {
+                    if (contractList == null)
+                        contractList = new ArrayList<NPSContract>();
+                    contractList.add(ct);
+                }
+            }
+            if (contractList != null && !contractList.isEmpty()) {
+                return contractList;
+            }
+            try {
+                session = HibernateUtil.getSessionFactory().openSession();
+                tx = session.beginTransaction();
+                Query q = session.createQuery("from NPSContract as contract where" 
+                        + " contract.description like '%" + containedStr + "%'");
+                if (q.list().size() > 0) {
+                    contractList = (List<NPSContract>)q.list();
+                    npsContracts.addAll(contractList);
+                    return contractList;
+                }
+            } catch (Exception e) {
+                tx.rollback();
+                e.printStackTrace();
+            } finally {
+                if (session.isOpen()) session.close();
+            }
+        }
+        return null;
+    }
+    
+
     public List<NPSContract> getContractByIdContains(String containedStr) {
         synchronized (npsContracts) {
             List<NPSContract> contractList = null;
@@ -400,6 +434,7 @@ public class NPSContractManager extends Thread {
                 if (q.list().size() > 0) {
                     contractList = (List<NPSContract>)q.list();
                     npsContracts.addAll(contractList);
+                    return contractList;
                 }
             } catch (Exception e) {
                 tx.rollback();

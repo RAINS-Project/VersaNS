@@ -54,14 +54,14 @@ public class DeltaResource {
      */
     @GET
     @Produces({"application/xml", "application/json"})
-    @Path("{referenceVersion}/{id}")
+    @Path("/{referenceVersion}/{id}")
     public String query(@PathParam("referenceVersion") String referenceVersion, @PathParam("id") long id) throws NotFoundException {
         DeltaBase delta = NPSGlobalState.getDeltaStore().getByIdWithReferenceVersion(referenceVersion, id);
         if (delta == null)
             throw new NotFoundException(String.format("Unknown Delta id=%d with referenceVersion='%s'", id, referenceVersion));
         
         // find all contracts with id.contains(delta.referenceVersion+"-"+delta.id) as well as contractRunners
-        List<NPSContract> contractList = NPSGlobalState.getContractManager().getContractByIdContains(String.format("%s-%d", delta.getReferenceVersion(), delta.getId()));
+        List<NPSContract> contractList = NPSGlobalState.getContractManager().getContractByDescriptionContains(String.format("%s-%d", delta.getReferenceVersion(), delta.getId()));
         
         boolean allActive = true;
         for (NPSContract contract : contractList) {
@@ -89,6 +89,10 @@ public class DeltaResource {
     @POST
     @Consumes({"application/xml", "application/json"})
     public String push(DeltaBase delta) {
+        DeltaBase existDelta = NPSGlobalState.getDeltaStore().getByIdWithReferenceVersion(delta.getReferenceVersion(), delta.getId());
+        if (existDelta != null) {
+            return existDelta.getStatus();
+        }
         // verify, map contracts (+/-) and add delta to db
         OntModel modelReduction = ModelFactory.createOntologyModel(OntModelSpec.OWL_MEM_MICRO_RULE_INF);
         try {
@@ -150,6 +154,8 @@ public class DeltaResource {
 
         // mark contract to teardown by later commit
         for (NPSContract deleteContract: deleteContractList) {
+            if (deleteContract.getDeletingDeltaTags() == null)
+                deleteContract.setDeletingDeltaTags(new ArrayList<String>());
             deleteContract.getDeletingDeltaTags().add(String.format("%s-%d", delta.getReferenceVersion(), delta.getId()));
         }
 
@@ -191,12 +197,18 @@ public class DeltaResource {
      */
     @PUT
     @Consumes({"application/xml", "application/json"})
-    @Path("{referenceVersion}/{id}")
-    public String commit(@PathParam("referenceVersion") String referenceVersion, @PathParam("id") long id) throws NotFoundException {
+    @Path("/{referenceVersion}/{id}/{action}")
+    public String commit(@PathParam("referenceVersion") String referenceVersion, @PathParam("id") long id, @PathParam("action") String action) throws NotFoundException {
+        if (!action.toLowerCase().equals("commit")) {
+            throw new BadRequestException("Invalid action: "+action);
+        }
+        // doCommit
         DeltaBase delta = NPSGlobalState.getDeltaStore().getByIdWithReferenceVersion(referenceVersion, id);
         if (delta == null)
             throw new NotFoundException(String.format("Unknown Delta id=%d with referenceVersion='%s'", id, referenceVersion));
-
+        if (!delta.getStatus().equals("CONFIRMED")) {
+            return delta.getStatus();
+        }
         // commitTeardown
         for (NPSContract contract: NPSGlobalState.getContractManager().getAll()) {
             // search deletingDeltaTags
@@ -210,7 +222,7 @@ public class DeltaResource {
         }
         
         // find all contracts with id.contains(delta.referenceVersion+"-"+delta.id) as well as contractRunners
-        List<NPSContract> contractList = NPSGlobalState.getContractManager().getContractByIdContains(String.format("%s-%d", delta.getReferenceVersion(), delta.getId()));
+        List<NPSContract> contractList = NPSGlobalState.getContractManager().getContractByDescriptionContains(String.format("%s-%d", delta.getReferenceVersion(), delta.getId()));
         
         if (contractList == null || contractList.isEmpty()) {
             throw new InternalServerErrorException(String.format("There is none reserved contract for Delta id=%d with referenceVersion='%s'", id, referenceVersion));
@@ -285,13 +297,15 @@ public class DeltaResource {
                 Statement subIfStmt = subIfStmts.next();
                 Resource resSubIf = subIfStmt.getObject().asResource();
                 ServiceTerminationPoint stp = new ServiceTerminationPoint();
-                stp.setId(resSubIf.getURI());
+                String subIfUrn = NPSUtils.extractSubInterfaceUrn(resSubIf.getURI());
+                stp.setId(subIfUrn);
                 stp.setInterfaceRef(resSubIf.getURI());
                 StmtIterator subIfLabelStmts = model.listStatements(resSubIf, Nml.hasLabel, (RDFNode)null);
                 Resource subIfLabel = null;
                 while (subIfLabelStmts.hasNext()) {
                     subIfLabel = subIfLabelStmts.next().getObject().asResource();
-                    if (model.listStatements(subIfLabel, Nml.labeltype, "http://schemas.ogf.org/nml/2012/10/ethernet#vlan").hasNext()) {
+                    Resource labelType = subIfLabel.getPropertyResourceValue(Nml.labeltype);
+                    if (labelType != null && labelType.getURI().equals("http://schemas.ogf.org/nml/2012/10/ethernet#vlan")) {
                         break;
                     }
                     subIfLabel = null;
@@ -311,6 +325,7 @@ public class DeltaResource {
                 vlanTag.setValue(labelValue);
                 l2info.setOuterVlanTag(vlanTag);
                 stp.setLayer2Info(l2info);
+                stpList.add(stp);
             }
             if (stpList.size() < 2) {
                 throw new BadRequestException(String.format("Subnet %s contains fewer than 2 interfaces", resSubnet.getURI()));
@@ -318,7 +333,8 @@ public class DeltaResource {
             ServiceContract serviceContract = new ServiceContract();
             serviceContract.setId(l2SubnetUri);
             serviceContract.getCustomerSTP().addAll(stpList);
-            serviceContract.setType("l2dcn"); //$$ for now
+            serviceContract.setType("dcn-layer2"); //$$ for now
+            serviceContractList.add(serviceContract);
         }
         // find all Route elements
         List<HashMap<String, String>> routeList = new ArrayList();
@@ -375,14 +391,14 @@ public class DeltaResource {
                     Resource resIf2Label = resIf2.getPropertyResourceValue(Nml.hasLabel);
                     if (resIf1Label == null || resIf2Label == null)
                         continue;
-                    Statement resIf1LabelType = resIf1Label.getProperty(Nml.labeltype);
+                    Resource resIf1LabelType = resIf1Label.getPropertyResourceValue(Nml.labeltype);
                     Statement resIf1LabelValue = resIf1Label.getProperty(Nml.value);
-                    Statement resIf2LabelType = resIf1Label.getProperty(Nml.labeltype);
+                    Resource resIf2LabelType = resIf1Label.getPropertyResourceValue(Nml.labeltype);
                     Statement resIf2LabelValue = resIf1Label.getProperty(Nml.value);
                     if (resIf1LabelType == null || resIf1LabelValue == null || resIf2LabelType == null || resIf2LabelValue == null)
                         continue;
                     VlanTag vlanTag1 = new VlanTag();
-                    if (resIf1LabelType.getObject().asLiteral().getString().equals("http://schemas.ogf.org/nml/2012/10/ethernet#vlan")) {
+                    if (resIf1LabelType.getURI().equals("http://schemas.ogf.org/nml/2012/10/ethernet#vlan")) {
                         String labelValue = resIf1LabelValue.getObject().asLiteral().getString();
                         vlanTag1.setTagged(labelValue.equalsIgnoreCase("untagged") ||  labelValue.equalsIgnoreCase("0") || labelValue.equalsIgnoreCase("-1") ? false: true);
                         vlanTag1.setValue(labelValue);
@@ -390,7 +406,7 @@ public class DeltaResource {
                     Layer2Info l2info1 = new Layer2Info();
                     l2info1.setOuterVlanTag(vlanTag1);
                     VlanTag vlanTag2 = new VlanTag();
-                    if (resIf2LabelType.getObject().asLiteral().getString().equals("http://schemas.ogf.org/nml/2012/10/ethernet#vlan")) {
+                    if (resIf2LabelType.getURI().equals("http://schemas.ogf.org/nml/2012/10/ethernet#vlan")) {
                         String labelValue = resIf1LabelValue.getObject().asLiteral().getString();
                         vlanTag2.setTagged(labelValue.equalsIgnoreCase("untagged") ||  labelValue.equalsIgnoreCase("0") || labelValue.equalsIgnoreCase("-1") ? false: true);
                         vlanTag2.setValue(labelValue);
@@ -400,7 +416,7 @@ public class DeltaResource {
                     // create L3 ServiceContract
                     ServiceContract serviceContract = new ServiceContract();
                     serviceContract.setId(routeMap.get("uri"));
-                    serviceContract.setType("l3aws");
+                    serviceContract.setType("aws-layer3");
                     HashMap<String, String> routeP2C = routeMap;
                     HashMap<String, String> routeC2P = routeMap2;
                     Layer2Info l2infoP = l2info1;
@@ -414,8 +430,8 @@ public class DeltaResource {
                     }
                     // create provider STP
                     ServiceTerminationPoint stpProvider = new ServiceTerminationPoint();
-                    stpProvider.setId(routeP2C.get("urn"));
-                    stpProvider.setInterfaceRef(routeP2C.get("urn"));
+                    stpProvider.setId(routeP2C.get(Mrs.routeFrom+":port"));
+                    stpProvider.setInterfaceRef(routeP2C.get(Mrs.routeFrom+":port"));
                     stpProvider.setLayer2Info(l2infoP);
                     Layer3Info l3infoP = new Layer3Info();
                     BgpInfo bgpInfoP = new BgpInfo();
@@ -431,8 +447,8 @@ public class DeltaResource {
                     stpProvider.setLayer3Info(l3infoP);
                     // create customer STP
                     ServiceTerminationPoint stpCustomer = new ServiceTerminationPoint();
-                    stpCustomer.setId(routeC2P.get("urn"));
-                    stpCustomer.setInterfaceRef(routeC2P.get("urn"));
+                    stpCustomer.setId(routeC2P.get(Mrs.routeFrom+":port"));
+                    stpCustomer.setInterfaceRef(routeC2P.get(Mrs.routeFrom+":port"));
                     stpCustomer.setLayer2Info(l2infoC);
                     Layer3Info l3infoC = new Layer3Info();
                     BgpInfo bgpInfoC = new BgpInfo();
@@ -451,6 +467,7 @@ public class DeltaResource {
                     // remove both routes from list
                     routeList.remove(routeMap);
                     routeList.remove(routeMap2);
+                    serviceContractList.add(serviceContract);
                     break;
                 }
             }

@@ -14,7 +14,7 @@ Content-Length: CONTENT_LENGTH
     <SOAP-ENV:Body>
         <teardown xmlns="http://maxgigapop.net/versans/nps/api/">
             <transactionId>trans-12343</transactionId>
-            <contractId>svc-asw-10001</contractId>
+            <contractId>svc-dcn-10014</contractId>
         </teardown>
     </SOAP-ENV:Body>
 </SOAP-ENV:Envelope>

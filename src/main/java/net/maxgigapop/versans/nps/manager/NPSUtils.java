@@ -126,6 +126,7 @@ public class NPSUtils {
         return urn;
     }
 
+    
     public static String extractInterfaceUrn(String urn) {
         String domain = getDcnUrnField(urn, "domain");
         if (domain == null)
@@ -144,7 +145,31 @@ public class NPSUtils {
         urn += port;
         return urn;
     }
-     
+
+    public static String extractSubInterfaceUrn(String urn) {
+        String domain = getDcnUrnField(urn, "domain");
+        if (domain == null)
+            return null;
+        String node = getDcnUrnField(urn, "node");
+        if (node == null)
+            return null;
+        String port = getDcnUrnField(urn, "port");
+        if (port == null)
+            return null;
+        String link = getDcnUrnField(urn, "link");
+        if (link == null)
+            return null;
+        urn = "urn:ogf:network:domain=";
+        urn += domain;
+        urn += ":node=";
+        urn += node;
+        urn += ":port=";
+        urn += port;
+        urn += ":link=";
+        urn += link;
+        return urn;
+    }
+    
     public static String extractIpAddress(String text) {
         String pattern = "(\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}).*";
         Pattern compiledPattern = Pattern.compile(pattern);
