@@ -13,10 +13,8 @@
 	</class>
 	<class name="net.maxgigapop.versans.nps.rest.model.DeltaBase"
 		table="deltas">
-		<id column="id" name="id">
-			<generator class="increment" />
-		</id>
-		<property column="creationTime" name="creationTime" />
+		<id column="id" name="id" />
+                <property column="creationTime" name="creationTime" />
 		<property column="referenceVersion" name="referenceVersion" />
 		<property column="modelReduction" name="modelReduction" />
 		<property column="modelAddition" name="modelAddition" />

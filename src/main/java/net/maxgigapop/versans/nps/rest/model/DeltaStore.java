@@ -27,8 +27,8 @@ public class DeltaStore {
 
     public synchronized boolean add(DeltaBase n) {
         synchronized (this) {
-            if (n.getReferenceVersion().isEmpty()) {
-                throw new IllegalArgumentException("DeltaBase object must have valid referenceVersion!");
+            if (n.getId().isEmpty() || n.getReferenceVersion().isEmpty()) {
+                throw new IllegalArgumentException("DeltaBase object must have valid id and referenceVersion!");
             }
             try {
                 session = HibernateUtil.getSessionFactory().openSession();
@@ -51,8 +51,8 @@ public class DeltaStore {
 
     public synchronized boolean update(DeltaBase n) {
         synchronized (this) {
-            if (n.getReferenceVersion().isEmpty()) {
-                throw new IllegalArgumentException("DeltaBase object must have valid referenceVersion!");
+            if (n.getId().isEmpty() || n.getReferenceVersion().isEmpty()) {
+                throw new IllegalArgumentException("DeltaBase object must have valid id and referenceVersion!");
             }
             try {
                 session = HibernateUtil.getSessionFactory().openSession();
@@ -119,12 +119,12 @@ public class DeltaStore {
     /**
      * get by ID
      */
-    public synchronized DeltaBase getById(int id) {
+    public synchronized DeltaBase getById(String id) {
         synchronized (this) {
             try {
                 session = HibernateUtil.getSessionFactory().openSession();
                 tx = session.beginTransaction();
-                Query q = session.createQuery("from DeltaBase as delta where delta.id=" + Long.toString(id));
+                Query q = session.createQuery("from DeltaBase as delta where delta.id='" + id + "'");
                 if (q.list().size() == 0) {
                     return null;
                 }
@@ -145,12 +145,12 @@ public class DeltaStore {
     /**
      * get by referenceVersion
      */
-    public synchronized DeltaBase getByIdWithReferenceVersion(String referenceVersion, long id) {
+    public synchronized DeltaBase getByIdWithReferenceVersion(String referenceVersion, String id) {
         synchronized (this) {
             try {
                 session = HibernateUtil.getSessionFactory().openSession();
                 tx = session.beginTransaction();
-                Query q = session.createQuery(String.format("from DeltaBase as delta where delta.referenceVersion='%s' and delta.id=%d", 
+                Query q = session.createQuery(String.format("from DeltaBase as delta where delta.referenceVersion='%s' and delta.id='%s'", 
                         referenceVersion, id));
                 if (q.list().size() == 0) {
                     return null;

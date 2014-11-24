@@ -57,13 +57,13 @@ public class DeltaResource {
     @GET
     @Produces({"application/xml", "application/json"})
     @Path("/{referenceVersion}/{id}")
-    public String query(@PathParam("referenceVersion") String referenceVersion, @PathParam("id") long id) throws NotFoundException {
+    public String query(@PathParam("referenceVersion") String referenceVersion, @PathParam("id") String id) throws NotFoundException {
         DeltaBase delta = NPSGlobalState.getDeltaStore().getByIdWithReferenceVersion(referenceVersion, id);
         if (delta == null)
-            throw new NotFoundException(String.format("Unknown Delta id=%d with referenceVersion='%s'", id, referenceVersion));
+            throw new NotFoundException(String.format("Unknown Delta id='%s' with referenceVersion='%s'", id, referenceVersion));
         
         // find all contracts with id.contains(delta.referenceVersion+"-"+delta.id) as well as contractRunners
-        List<NPSContract> contractList = NPSGlobalState.getContractManager().getContractByDescriptionContains(String.format("%s-%d", delta.getReferenceVersion(), delta.getId()));
+        List<NPSContract> contractList = NPSGlobalState.getContractManager().getContractByDescriptionContains(String.format("%s-%s", delta.getReferenceVersion(), delta.getId()));
         
         boolean allActive = true;
         boolean inSetup = false;
@@ -135,7 +135,7 @@ public class DeltaResource {
                 ontNewModel.remove(modelReduction);
                 ontNewModel.add(modelAddition);
             } catch (Exception ex) {
-                throw new InternalServerErrorException(String.format("Failed to apply delta (id=%d) to reference model (version=%s), due to %s",
+                throw new InternalServerErrorException(String.format("Failed to apply delta (id=%s) to reference model (version=%s), due to %s",
                         delta.getId(), refModelBase.getVersion(), ex.getMessage()));
             }
             
@@ -162,24 +162,24 @@ public class DeltaResource {
         
         //$$ map realtime modelAddition to contracts to set up
         // throw exception if any SwitchingSubnet or Route is mal formatted
-        List<ServiceContract> serviceContractList = this.createL2L3ContractsFromOntModel(modelAddition, String.format("%s-%d", delta.getReferenceVersion(), delta.getId()));
+        List<ServiceContract> serviceContractList = this.createL2L3ContractsFromOntModel(modelAddition, String.format("%s-%s", delta.getReferenceVersion(), delta.getId()));
 
         // mark contract to teardown by later commit
         for (NPSContract deleteContract: deleteContractList) {
             if (deleteContract.getDeletingDeltaTags() == null)
                 deleteContract.setDeletingDeltaTags(new ArrayList<String>());
-            deleteContract.getDeletingDeltaTags().add(String.format("%s-%d", delta.getReferenceVersion(), delta.getId()));
+            deleteContract.getDeletingDeltaTags().add(String.format("%s-%s", delta.getReferenceVersion(), delta.getId()));
         }
 
         List<NPSContract> rollbackContractList = new ArrayList<NPSContract>();
         boolean hasSetupFailure = false;
         for (ServiceContract serviceContract: serviceContractList) {
             try {
-                NPSGlobalState.getContractManager().handleSetup(serviceContract, String.format("Serving delta: %s-%d", delta.getReferenceVersion(), delta.getId()), true);
+                NPSGlobalState.getContractManager().handleSetup(serviceContract, String.format("Serving delta: %s-%s", delta.getReferenceVersion(), delta.getId()), true);
             } catch (ServiceException ex) {
                 // collect the added contracts to be deleted by rollback
                 for (NPSContract contract: NPSGlobalState.getContractManager().getAll()) {
-                    if (contract.getDescription().equals(String.format("Serving delta: %s-%d", delta.getReferenceVersion(), delta.getId()))) {
+                    if (contract.getDescription().equals(String.format("Serving delta: %s-%s", delta.getReferenceVersion(), delta.getId()))) {
                         rollbackContractList.add(contract);
                     }
                     hasSetupFailure = true;
@@ -197,7 +197,7 @@ public class DeltaResource {
             }
         }        
         if (hasSetupFailure) {
-            throw new InternalServerErrorException(String.format("Failed to setup delta (%d) with referenceVersion=%s)", delta.getId(), delta.getReferenceVersion()));
+            throw new InternalServerErrorException(String.format("Failed to setup delta (id=%s) with referenceVersion=%s)", delta.getId(), delta.getReferenceVersion()));
         }
         
         delta.setStatus("CONFIRMED");
@@ -213,14 +213,14 @@ public class DeltaResource {
     @PUT
     @Consumes({"application/xml", "application/json"})
     @Path("/{referenceVersion}/{id}/{action}")
-    public String commit(@PathParam("referenceVersion") String referenceVersion, @PathParam("id") long id, @PathParam("action") String action) throws NotFoundException {
+    public String commit(@PathParam("referenceVersion") String referenceVersion, @PathParam("id") String id, @PathParam("action") String action) throws NotFoundException {
         if (!action.toLowerCase().equals("commit")) {
             throw new BadRequestException("Invalid action: "+action);
         }
         // doCommit
         DeltaBase delta = NPSGlobalState.getDeltaStore().getByIdWithReferenceVersion(referenceVersion, id);
         if (delta == null)
-            throw new NotFoundException(String.format("Unknown Delta id=%d with referenceVersion='%s'", id, referenceVersion));
+            throw new NotFoundException(String.format("Unknown Delta id=%s with referenceVersion='%s'", id, referenceVersion));
         if (!delta.getStatus().equals("CONFIRMED")) {
             return delta.getStatus();
         }
@@ -229,7 +229,7 @@ public class DeltaResource {
         while (contractIter.hasNext()) {
             NPSContract contract = contractIter.next();
             // search deletingDeltaTags
-            if (contract.getDeletingDeltaTags() != null && contract.getDeletingDeltaTags().contains(String.format("%s-%d", delta.getReferenceVersion(), delta.getId()))) {
+            if (contract.getDeletingDeltaTags() != null && contract.getDeletingDeltaTags().contains(String.format("%s-%s", delta.getReferenceVersion(), delta.getId()))) {
                 try {
                     NPSGlobalState.getContractManager().handleTeardown(contract.getId());
                 } catch (ServiceException ex) {
@@ -240,7 +240,7 @@ public class DeltaResource {
         
         // commitSetup
         // find all contracts with id.contains(delta.referenceVersion+"-"+delta.id) as well as contractRunners
-        List<NPSContract> contractList = NPSGlobalState.getContractManager().getContractByDescriptionContains(String.format("%s-%d", delta.getReferenceVersion(), delta.getId()));        
+        List<NPSContract> contractList = NPSGlobalState.getContractManager().getContractByDescriptionContains(String.format("%s-%s", delta.getReferenceVersion(), delta.getId()));        
         // commitSetup
         if (contractList != null) {
             for (NPSContract newContract : contractList) {

@@ -155,7 +155,7 @@ public class NPSGlobalState {
                 + ") ENGINE=InnoDB DEFAULT CHARSET=latin1");
         //init the deltas table
         NPSUtils.executeDirectStatement("CREATE TABLE IF NOT EXISTS nps.deltas ( "
-                + "id int(11) NOT NULL auto_increment, "
+                + "id VARCHAR(255) NOT NULL, "
                 + "creationTime DATETIME NOT NULL, "
                 + "referenceVersion VARCHAR(255) NOT NULL, "
                 + "modelAddition LONGTEXT NOT NULL, "

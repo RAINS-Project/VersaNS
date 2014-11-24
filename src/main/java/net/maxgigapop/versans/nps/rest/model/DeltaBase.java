@@ -12,7 +12,7 @@ import javax.xml.bind.annotation.*;
 @XmlAccessorType(XmlAccessType.FIELD)
 public class DeltaBase {
     @XmlElement(required=true) 
-    protected Long id = 0L;
+    protected String id = "";
     @XmlElement(required=true) 
     protected Date creationTime;
     @XmlElement(required=true)
@@ -27,11 +27,11 @@ public class DeltaBase {
     //$$ TODO: add client id to make unique delta for multi-clients
         // or change id long -> string / uuid
 
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
     }
 
