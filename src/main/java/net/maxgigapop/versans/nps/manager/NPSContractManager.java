@@ -383,7 +383,7 @@ public class NPSContractManager extends Thread {
         synchronized (npsContracts) {
             List<NPSContract> contractList = null;
             for (NPSContract ct: npsContracts) {
-                if (ct.getId().contains(containedStr)) {
+                if (ct.getDescription().contains(containedStr)) {
                     if (contractList == null)
                         contractList = new ArrayList<NPSContract>();
                     contractList.add(ct);

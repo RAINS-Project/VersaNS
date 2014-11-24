@@ -14,6 +14,7 @@ import com.hp.hpl.jena.rdf.model.Resource;
 import com.hp.hpl.jena.rdf.model.Statement;
 import com.hp.hpl.jena.rdf.model.StmtIterator;
 import java.io.StringReader;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -25,6 +26,7 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 import net.maxgigapop.versans.nps.api.*;
+import net.maxgigapop.versans.nps.device.DeviceException;
 import net.maxgigapop.versans.nps.manager.*;
 import net.maxgigapop.versans.nps.rest.model.*;
 
@@ -64,6 +66,7 @@ public class DeltaResource {
         List<NPSContract> contractList = NPSGlobalState.getContractManager().getContractByDescriptionContains(String.format("%s-%d", delta.getReferenceVersion(), delta.getId()));
         
         boolean allActive = true;
+        boolean inSetup = false;
         for (NPSContract contract : contractList) {
             if (contract.getStatus().contains("FAILED")) {
                 delta.setStatus("COMMIT_FAILED");
@@ -71,11 +74,14 @@ public class DeltaResource {
             }
             if (!contract.getStatus().equals("ACTIVE")) {
                 allActive = false;
+                if (!contract.getStatus().equals("PREPARING")) {
+                    inSetup = true;
+                }
             }
-        }        
+        }
         if (allActive)
             delta.setStatus("ACTIVE");
-        else
+        if (inSetup)
             delta.setStatus("INSETUP");
         NPSGlobalState.getDeltaStore().update(delta);
         return delta.getStatus();
@@ -117,17 +123,17 @@ public class DeltaResource {
         // if (referenceVersion not head) calcuate the realtime modelAddition and modelReduction
         OntModel ontHeadModel = NPSGlobalState.getTopologyManager().getTopologyOntHeadModel();
         if (ontHeadModel != null && !delta.getReferenceVersion().equals(NPSGlobalState.getTopologyManager().getTopologyOntHeadModelVersion())) {
-            OntModel ontRefModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_MEM_MICRO_RULE_INF);
+            OntModel ontNewModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_MEM_MICRO_RULE_INF);
             try {
                 StringReader ttlReader = new StringReader(refModelBase.getTtlModel());
-                ontRefModel.read(ttlReader, null, "TURTLE");
+                ontNewModel.read(ttlReader, null, "TURTLE");
             } catch (Exception ex) {
                 throw new InternalServerErrorException(String.format("Failed to parse reference model (version=%s), due to %s", 
                         refModelBase.getVersion(), ex.getMessage()));
             }
             try {
-                ontRefModel.remove(modelReduction);
-                ontRefModel.add(modelAddition);
+                ontNewModel.remove(modelReduction);
+                ontNewModel.add(modelAddition);
             } catch (Exception ex) {
                 throw new InternalServerErrorException(String.format("Failed to apply delta (id=%d) to reference model (version=%s), due to %s",
                         delta.getId(), refModelBase.getVersion(), ex.getMessage()));
@@ -135,14 +141,20 @@ public class DeltaResource {
             
             try {
                 modelReduction.removeAll();
-                modelReduction.add(ontRefModel.difference(ontHeadModel));
+                modelReduction.add(ontHeadModel.difference(ontNewModel));
                 modelAddition.removeAll();
-                modelAddition.add(ontHeadModel.difference(ontRefModel));
+                modelAddition.add(ontNewModel.difference(ontHeadModel));
             } catch (Exception ex) {
                 throw new InternalServerErrorException(String.format("Failed to create realtime delta based on head model (version=%s), due to: %s", 
                         NPSGlobalState.getTopologyManager().getTopologyOntHeadModelVersion(), ex.getMessage()));
             }
         }
+                    StringWriter ttlWriter1 = new StringWriter();
+                    modelReduction.write(ttlWriter1, "TURTLE");
+                    System.out.print(ttlWriter1);
+                    StringWriter ttlWriter2 = new StringWriter();
+                    modelAddition.write(ttlWriter2, "TURTLE");
+                    System.out.print(ttlWriter2);
 
         //$$ map realtime modelReduction to contracts to tear down
         // throw exception if any SwitchingSubnet or Route is mal formatted
@@ -150,7 +162,7 @@ public class DeltaResource {
         
         //$$ map realtime modelAddition to contracts to set up
         // throw exception if any SwitchingSubnet or Route is mal formatted
-        List<ServiceContract> serviceContractList = this.createL2L3ContractsFromOntModel(modelAddition);
+        List<ServiceContract> serviceContractList = this.createL2L3ContractsFromOntModel(modelAddition, String.format("%s-%d", delta.getReferenceVersion(), delta.getId()));
 
         // mark contract to teardown by later commit
         for (NPSContract deleteContract: deleteContractList) {
@@ -160,6 +172,7 @@ public class DeltaResource {
         }
 
         List<NPSContract> rollbackContractList = new ArrayList<NPSContract>();
+        boolean hasSetupFailure = false;
         for (ServiceContract serviceContract: serviceContractList) {
             try {
                 NPSGlobalState.getContractManager().handleSetup(serviceContract, String.format("Serving delta: %s-%d", delta.getReferenceVersion(), delta.getId()), true);
@@ -169,6 +182,7 @@ public class DeltaResource {
                     if (contract.getDescription().equals(String.format("Serving delta: %s-%d", delta.getReferenceVersion(), delta.getId()))) {
                         rollbackContractList.add(contract);
                     }
+                    hasSetupFailure = true;
                 }
             }
         }
@@ -181,7 +195,8 @@ public class DeltaResource {
                     log.error(String.format("Failed to deleteContract(%s) when rolling back the delta setup process, due to %s", contract.getId(), ex.getMessage()));
                 }
             }
-            // throw exception
+        }        
+        if (hasSetupFailure) {
             throw new InternalServerErrorException(String.format("Failed to setup delta (%d) with referenceVersion=%s)", delta.getId(), delta.getReferenceVersion()));
         }
         
@@ -210,43 +225,50 @@ public class DeltaResource {
             return delta.getStatus();
         }
         // commitTeardown
-        for (NPSContract contract: NPSGlobalState.getContractManager().getAll()) {
+        Iterator<NPSContract> contractIter = NPSGlobalState.getContractManager().getAll().iterator();
+        while (contractIter.hasNext()) {
+            NPSContract contract = contractIter.next();
             // search deletingDeltaTags
             if (contract.getDeletingDeltaTags() != null && contract.getDeletingDeltaTags().contains(String.format("%s-%d", delta.getReferenceVersion(), delta.getId()))) {
                 try {
-                    NPSGlobalState.getContractManager().deleteContract(contract);
+                    NPSGlobalState.getContractManager().handleTeardown(contract.getId());
                 } catch (ServiceException ex) {
                     throw new InternalServerErrorException(String.format("Failed to commit delta when deleting sub-level contract '%s'", contract.getId()));
                 }
             }
         }
         
+        // commitSetup
         // find all contracts with id.contains(delta.referenceVersion+"-"+delta.id) as well as contractRunners
-        List<NPSContract> contractList = NPSGlobalState.getContractManager().getContractByDescriptionContains(String.format("%s-%d", delta.getReferenceVersion(), delta.getId()));
-        
-        if (contractList == null || contractList.isEmpty()) {
-            throw new InternalServerErrorException(String.format("There is none reserved contract for Delta id=%d with referenceVersion='%s'", id, referenceVersion));
-        }
-        
-        // commitSetup        
-        for (NPSContract newContract: contractList) {
-            try {
-                if (newContract.getStatus().equals("PREPARING")) {
-                    NPSGlobalState.getContractManager().commitSetup(newContract);
+        List<NPSContract> contractList = NPSGlobalState.getContractManager().getContractByDescriptionContains(String.format("%s-%d", delta.getReferenceVersion(), delta.getId()));        
+        // commitSetup
+        if (contractList != null) {
+            for (NPSContract newContract : contractList) {
+                try {
+                    if (newContract.getStatus().equals("PREPARING")) {
+                        if (newContract.getDeviceProvisionSequence() == null || newContract.getCustomerSTPs() == null) {
+                            try {
+                                NPSGlobalState.getContractManager().restoreContract(newContract);
+                            } catch (Exception ex) {
+                                throw new InternalServerErrorException(String.format("Contract %s cannot be restored", newContract.getId()));
+                            }
+                        }
+                        NPSGlobalState.getContractManager().commitSetup(newContract);
+                    }
+                } catch (ServiceException ex) {
+                    delta.setStatus("COMMIT_FAILED");
+                    NPSGlobalState.getDeltaStore().update(delta);
+                    throw new InternalServerErrorException(String.format("Failed to commit delta when provisoning sub-level contract '%s'", newContract.getId()));
                 }
-            } catch (ServiceException ex) {
-                delta.setStatus("COMMIT_FAILED");
-                NPSGlobalState.getDeltaStore().update(delta);
-                throw new InternalServerErrorException(String.format("Failed to commit delta when provisoning sub-level contract '%s'", newContract.getId()));
             }
         }
-        
         delta.setStatus("COMMITTED");
         NPSGlobalState.getDeltaStore().update(delta);
         return delta.getStatus();
     }
     
     List<NPSContract> lookupL2L3ContractsFromOntModel(OntModel model) {
+        List<NPSContract> allContracts = NPSGlobalState.getContractManager().getAll();
         List<NPSContract> contractList = new ArrayList<NPSContract>();
         // find all SwitchingSubnet elements
         StmtIterator stmts = model.listStatements(null, RdfOwl.type, Mrs.SwitchingSubnet);
@@ -254,15 +276,31 @@ public class DeltaResource {
             Statement stmt = stmts.next();
             Resource stmtSubject = stmt.getSubject();
             String l2SubnetUri = stmtSubject.getURI();
-            NPSContract contract = NPSGlobalState.getContractManager().getContractById(l2SubnetUri);
-            if (contract == null) {
+            if (l2SubnetUri.endsWith(":vlan")) {
+                l2SubnetUri = l2SubnetUri.substring(0, l2SubnetUri.length()-5);
+            }
+            NPSContract aContract = null;
+            for (NPSContract contract: allContracts) {
+                if (contract.getId().equals(l2SubnetUri)) {
+                    aContract = contract;
+                    break;
+                }
                 String[] uriFields = l2SubnetUri.split(":");
-                if (uriFields.length > 2 && uriFields[uriFields.length-1].equalsIgnoreCase("vlan")) {
-                    contract = NPSGlobalState.getContractManager().getContractById(uriFields[uriFields.length-2]);
+                if (uriFields.length > 1 && contract.getId().endsWith(":"+uriFields[uriFields.length-1])) {
+                    aContract = contract;
+                    break;
                 }
             }
-            if (contract != null)
-                contractList.add(contract); 
+            if (aContract != null) {
+                if (aContract.getDeviceProvisionSequence() == null || aContract.getCustomerSTPs() == null) {
+                    try {
+                        NPSGlobalState.getContractManager().restoreContract(aContract);
+                    } catch (Exception ex) {
+                        throw new InternalServerErrorException(String.format("Contract %s cannot be restored", aContract.getId()));
+                    }
+                }
+                contractList.add(aContract); 
+            }
         }
         // find all Route elements
         stmts = model.listStatements(null, RdfOwl.type, Mrs.Route);
@@ -270,20 +308,34 @@ public class DeltaResource {
             Statement stmt = stmts.next();
             Resource stmtSubject = stmt.getSubject();
             String l3RouteUri = stmtSubject.getURI();
-            NPSContract contract = NPSGlobalState.getContractManager().getContractById(l3RouteUri);
-            if (contract == null) {
+            NPSContract aContract = null;
+            for (NPSContract contract: allContracts) {
+                if (contract.getId().endsWith(":"+l3RouteUri)) {
+                    aContract = contract;
+                    break;
+                }
                 String[] uriFields = l3RouteUri.split(":");
-                if (uriFields.length > 2 && (uriFields[uriFields.length-1].equalsIgnoreCase("p2c") || uriFields[uriFields.length-1].equalsIgnoreCase("c2p"))) {
-                    contract = NPSGlobalState.getContractManager().getContractById(uriFields[uriFields.length-2]);
+                if (uriFields.length > 2 && (uriFields[uriFields.length-1].equalsIgnoreCase("p2c") || uriFields[uriFields.length-1].equalsIgnoreCase("c2p")) 
+                        && contract.getId().endsWith(":"+uriFields[uriFields.length-2])) {
+                    aContract = contract;
+                    break;
                 }
             }
-            if (contract != null && !contractList.contains(contract))
-                contractList.add(contract);
+            if (aContract != null && !contractList.contains(aContract)) {
+                if (aContract.getDeviceProvisionSequence() == null || aContract.getCustomerSTPs() == null) {
+                    try {
+                        NPSGlobalState.getContractManager().restoreContract(aContract);
+                    } catch (Exception ex) {
+                        throw new InternalServerErrorException(String.format("Contract %s cannot be restored", aContract.getId()));
+                    }
+                }
+                contractList.add(aContract);
+            }
         }
         return contractList;
     }
 
-    List<ServiceContract> createL2L3ContractsFromOntModel(OntModel model) {
+    List<ServiceContract> createL2L3ContractsFromOntModel(OntModel model, String contractIdPrefix) {
         List<ServiceContract> serviceContractList= new ArrayList<ServiceContract>();
         // find all SwitchingSubnet elements
         StmtIterator stmts = model.listStatements(null, RdfOwl.type, Mrs.SwitchingSubnet);
@@ -298,7 +350,7 @@ public class DeltaResource {
                 Resource resSubIf = subIfStmt.getObject().asResource();
                 ServiceTerminationPoint stp = new ServiceTerminationPoint();
                 String subIfUrn = NPSUtils.extractSubInterfaceUrn(resSubIf.getURI());
-                stp.setId(subIfUrn);
+                stp.setId(subIfUrn);    
                 stp.setInterfaceRef(resSubIf.getURI());
                 StmtIterator subIfLabelStmts = model.listStatements(resSubIf, Nml.hasLabel, (RDFNode)null);
                 Resource subIfLabel = null;
@@ -331,7 +383,7 @@ public class DeltaResource {
                 throw new BadRequestException(String.format("Subnet %s contains fewer than 2 interfaces", resSubnet.getURI()));
             }
             ServiceContract serviceContract = new ServiceContract();
-            serviceContract.setId(l2SubnetUri);
+            serviceContract.setId(contractIdPrefix+":"+l2SubnetUri);
             serviceContract.getCustomerSTP().addAll(stpList);
             serviceContract.setType("dcn-layer2"); //$$ for now
             serviceContractList.add(serviceContract);
@@ -415,7 +467,7 @@ public class DeltaResource {
                     l2info2.setOuterVlanTag(vlanTag1);
                     // create L3 ServiceContract
                     ServiceContract serviceContract = new ServiceContract();
-                    serviceContract.setId(routeMap.get("uri"));
+                    serviceContract.setId(contractIdPrefix+":"+routeMap.get("uri"));
                     serviceContract.setType("aws-layer3");
                     HashMap<String, String> routeP2C = routeMap;
                     HashMap<String, String> routeC2P = routeMap2;
