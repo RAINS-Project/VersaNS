@@ -168,7 +168,7 @@ public class DeltaResource {
         
         //$$ map realtime modelAddition to contracts to set up
         // throw exception if any SwitchingSubnet or Route is mal formatted
-        List<ServiceContract> serviceContractList = this.createL2L3ContractsFromOntModel(modelAddition, String.format("%s-%s", delta.getReferenceVersion(), delta.getId()));
+        List<ServiceContract> serviceContractList = this.createL2L3ContractsFromOntModel(modelAddition, String.format(":delta=%s-%s", delta.getReferenceVersion(), delta.getId()));
 
         // mark contract to teardown by later commit
         for (NPSContract deleteContract: deleteContractList) {
@@ -316,7 +316,7 @@ public class DeltaResource {
             String l3RouteUri = stmtSubject.getURI();
             NPSContract aContract = null;
             for (NPSContract contract: allContracts) {
-                if (contract.getId().endsWith(":"+l3RouteUri)) {
+                if (l3RouteUri.startsWith(contract.getId())) {
                     aContract = contract;
                     break;
                 }
@@ -341,7 +341,7 @@ public class DeltaResource {
         return contractList;
     }
 
-    List<ServiceContract> createL2L3ContractsFromOntModel(OntModel model, String contractIdPrefix) {
+    List<ServiceContract> createL2L3ContractsFromOntModel(OntModel model, String contractIdSuffix) {
         List<ServiceContract> serviceContractList= new ArrayList<ServiceContract>();
         // find all SwitchingSubnet elements
         StmtIterator stmts = model.listStatements(null, RdfOwl.type, Mrs.SwitchingSubnet);
@@ -389,7 +389,7 @@ public class DeltaResource {
                 throw new BadRequestException(String.format("Subnet %s contains fewer than 2 interfaces", resSubnet.getURI()));
             }
             ServiceContract serviceContract = new ServiceContract();
-            serviceContract.setId(contractIdPrefix+":"+l2SubnetUri);
+            serviceContract.setId(l2SubnetUri+contractIdSuffix);
             serviceContract.getCustomerSTP().addAll(stpList);
             serviceContract.setType("dcn-layer2"); //$$ for now
             serviceContractList.add(serviceContract);
@@ -447,6 +447,8 @@ public class DeltaResource {
                     if (!routeMap.containsKey(Mrs.routeFrom+":port") || !routeMap2.containsKey(Mrs.routeFrom+":port"))
                         continue;
                     Resource resIf1 = model.getResource(routeMap.get(Mrs.routeFrom+":port"));
+                    // $$ TODO: what if the customer sub-interface (If2) has existed
+                    // $$ add refOntModel as another parameter of this method. Then If1 refers to AWS provider side!
                     Resource resIf2 = model.getResource(routeMap2.get(Mrs.routeFrom+":port"));
                     if (resIf1 == null || resIf2 == null)
                         continue;
@@ -456,8 +458,8 @@ public class DeltaResource {
                         continue;
                     Resource resIf1LabelType = resIf1Label.getPropertyResourceValue(Nml.labeltype);
                     Statement resIf1LabelValue = resIf1Label.getProperty(Nml.value);
-                    Resource resIf2LabelType = resIf1Label.getPropertyResourceValue(Nml.labeltype);
-                    Statement resIf2LabelValue = resIf1Label.getProperty(Nml.value);
+                    Resource resIf2LabelType = resIf2Label.getPropertyResourceValue(Nml.labeltype);
+                    Statement resIf2LabelValue = resIf2Label.getProperty(Nml.value);
                     if (resIf1LabelType == null || resIf1LabelValue == null || resIf2LabelType == null || resIf2LabelValue == null)
                         continue;
                     VlanTag vlanTag1 = new VlanTag();
@@ -470,21 +472,21 @@ public class DeltaResource {
                     l2info1.setOuterVlanTag(vlanTag1);
                     VlanTag vlanTag2 = new VlanTag();
                     if (resIf2LabelType.getURI().equals("http://schemas.ogf.org/nml/2012/10/ethernet#vlan")) {
-                        String labelValue = resIf1LabelValue.getObject().asLiteral().getString();
+                        String labelValue = resIf2LabelValue.getObject().asLiteral().getString();
                         vlanTag2.setTagged(labelValue.equalsIgnoreCase("untagged") ||  labelValue.equalsIgnoreCase("0") || labelValue.equalsIgnoreCase("-1") ? false: true);
                         vlanTag2.setValue(labelValue);
                     }
                     Layer2Info l2info2 = new Layer2Info();
-                    l2info2.setOuterVlanTag(vlanTag1);
+                    l2info2.setOuterVlanTag(vlanTag2);
                     // create L3 ServiceContract
                     ServiceContract serviceContract = new ServiceContract();
-                    serviceContract.setId(contractIdPrefix+":"+routeMap.get("uri"));
+                    serviceContract.setId(routeMap.get("uri")+contractIdSuffix);
                     serviceContract.setType("aws-layer3");
                     HashMap<String, String> routeP2C = routeMap;
                     HashMap<String, String> routeC2P = routeMap2;
                     Layer2Info l2infoP = l2info1;
                     Layer2Info l2infoC = l2info2;
-                    // identify the AWS provider side
+                    //$$ TODO  alternatively identify AWS provider side in nps.yaml
                     Statement if2NameStmt = resIf2.getProperty(Nml.name);
                     if (if2NameStmt != null && if2NameStmt.getObject().asLiteral().getString().toLowerCase().contains("aws")) {
                         routeP2C = routeMap2;
@@ -494,9 +496,9 @@ public class DeltaResource {
                     }
                     // create provider STP
                     ServiceTerminationPoint stpProvider = new ServiceTerminationPoint();
-                    stpProvider.setId(routeP2C.get(Mrs.routeFrom+":port"));
                     String ifUrnP = NPSUtils.extractInterfaceUrn(routeP2C.get(Mrs.routeFrom+":port"));
-                    stpProvider.setInterfaceRef(ifUrnP);
+                    stpProvider.setId(ifUrnP);
+                    stpProvider.setInterfaceRef(routeP2C.get(Mrs.routeFrom+":port"));
                     stpProvider.setLayer2Info(l2infoP);
                     Layer3Info l3infoP = new Layer3Info();
                     BgpInfo bgpInfoP = new BgpInfo();
@@ -512,9 +514,9 @@ public class DeltaResource {
                     stpProvider.setLayer3Info(l3infoP);
                     // create customer STP
                     ServiceTerminationPoint stpCustomer = new ServiceTerminationPoint();
-                    stpCustomer.setId(routeC2P.get(Mrs.routeFrom+":port"));
                     String ifUrnC = NPSUtils.extractInterfaceUrn(routeC2P.get(Mrs.routeFrom+":port"));
-                    stpCustomer.setInterfaceRef(ifUrnC);
+                    stpCustomer.setId(ifUrnC);
+                    stpCustomer.setInterfaceRef(routeC2P.get(Mrs.routeFrom+":port"));
                     stpCustomer.setLayer2Info(l2infoC);
                     Layer3Info l3infoC = new Layer3Info();
                     BgpInfo bgpInfoC = new BgpInfo();

@@ -20,6 +20,7 @@ import org.w3c.dom.*;
 import javax.xml.parsers.*;
 import org.xml.sax.InputSource;
 import java.io.StringReader;
+import net.maxgigapop.versans.nps.manager.NPSUtils;
 
 import org.ho.yaml.Yaml;
 
@@ -108,7 +109,7 @@ public class RouterJUNOS implements NetworkDeviceInstance{
             this.delta = NPSGlobalState.getDeviceDeltaStore().getByDeviceAndContractId(this.deviceRef.getId(), contractId);
         }
         if (this.delta == null) {
-            this.delta = JunoscriptGenerator.generateDelta(contractId, localSTPs, localPolicies);
+            this.delta = JunoscriptGenerator.generateDelta(contractId.replaceAll(":", "_"), localSTPs, localPolicies);
         }
     }
     

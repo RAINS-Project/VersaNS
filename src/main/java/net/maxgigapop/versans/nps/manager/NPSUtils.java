@@ -237,4 +237,9 @@ public class NPSUtils {
         return sb.toString();                           
     }
 
+    public static String shortenToHeadAndTail(String str, int len) {
+        if (str.length() <= len) 
+            return str;
+        return str.substring(0, 16) + str.subSequence(str.length()-len+16, str.length());
+    }
 }

@@ -139,7 +139,7 @@ public class JunoscriptGenerator {
         policies_p.put("policy_name", provider_policy_name);
         
         //configure customer policies
-        String customer_prefix_list_name = "prefix-list-customer-contract-"+contractId;
+        String customer_prefix_list_name = NPSUtils.shortenToHeadAndTail("prefix-list-customer-"+contractId, 64);
         if (customerSTP.getLayer3Info().getBgpInfo().getPeerPrefixListName() != null) {
             // using existing prefix-list
             policies_c.put("prefix_list_existed", true);
@@ -152,21 +152,21 @@ public class JunoscriptGenerator {
             throw new DeviceException("cannot configure customer IP prefix list - need either an existing prefix-list name or a list or IP prefixes");
         }
         policies_c.put("prefix_list_name", customer_prefix_list_name);
-        String customer_policy_name = "policy-customer-contract-"+contractId;
+        String customer_policy_name = NPSUtils.shortenToHeadAndTail("policy-customer-contract-"+contractId, 64);
         policies_c.put("policy_name", customer_policy_name);
         
         //configure filters
-        String provider_input_filter_name = "filter-provider-input-contract-"+contractId;
+        String provider_input_filter_name = NPSUtils.shortenToHeadAndTail("filter-provider-input-"+contractId, 64);
         ((Map)filters_p.get("input")).put("name", provider_input_filter_name);
-        String provider_output_filter_name = "filter-provider-output-contract-"+contractId;
+        String provider_output_filter_name = NPSUtils.shortenToHeadAndTail("filter-provider-output-"+contractId, 64);
         ((Map)filters_p.get("output")).put("name", provider_output_filter_name);
-        String customer_input_filter_name = "filter-customer-interface-"+customer_port+"."+customer_port_vlan;;
+        String customer_input_filter_name = "filter-customer-interface-"+customer_port+"."+customer_port_vlan;
         ((Map)filters_c.get("input")).put("name", customer_input_filter_name);
-        String customer_input_filter_term = "match-prefix-list-contract-"+contractId;
+        String customer_input_filter_term = NPSUtils.shortenToHeadAndTail("match-prefix-list-"+contractId, 64);
         ((Map)filters_c.get("input")).put("term", customer_input_filter_term);
 
         //configure routing_instance
-        String routing_instance_name = "routing-instance-contract-"+contractId;
+        String routing_instance_name = NPSUtils.shortenToHeadAndTail("routing-instance-"+contractId, 64);
         routing_instance.put("name", routing_instance_name);
 
         mapInput.put("has_customer_config", bgp_config_customer.booleanValue()); //TODO: configurable 
@@ -180,7 +180,7 @@ public class JunoscriptGenerator {
                         && policy.getAction().equalsIgnoreCase("limit")
                         && policy.getConstraintType().equalsIgnoreCase("bandwidth")) {
                     mapInput.put("has_bw_policer", true);
-                    String policer_name = "bw-policer-contract-"+contractId;
+                    String policer_name = NPSUtils.shortenToHeadAndTail("bw-policer-"+contractId, 64);
                     policer.put("name", policer_name);
                     long bw = NPSUtils.bandwdithToBps(policy.getConstraintValue());
                     String policer_bandwidth_limit = Long.toString(bw);
