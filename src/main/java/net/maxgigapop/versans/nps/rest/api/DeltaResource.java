@@ -68,7 +68,7 @@ public class DeltaResource {
         boolean allActive = true;
         boolean inSetup = false;
         for (NPSContract contract : contractList) {
-            if (contract.getStatus().contains("FAILED")) {
+            if (contract.getStatus().contains("FAILED") || contract.getStatus().contains("ROLLBACKED")) {
                 delta.setStatus("COMMIT_FAILED");
                 break;
             }
@@ -95,6 +95,12 @@ public class DeltaResource {
     @POST
     @Consumes({"application/xml", "application/json"})
     public String push(DeltaBase delta) {
+        if (delta.getId() == null || delta.getId().isEmpty()) {
+            throw new BadRequestException(String.format("Failed to push delta - invalid ID"));
+        }
+        if (delta.getReferenceVersion() == null || delta.getReferenceVersion().isEmpty()) {
+            throw new BadRequestException(String.format("Failed to push delta - invalid referenceVersion"));
+        }        
         DeltaBase existDelta = NPSGlobalState.getDeltaStore().getByIdWithReferenceVersion(delta.getReferenceVersion(), delta.getId());
         if (existDelta != null) {
             return existDelta.getStatus();
@@ -406,7 +412,7 @@ public class DeltaResource {
                 if (model.listStatements(routeItemO, RdfOwl.type, Mrs.NetworkAddress).hasNext()) {
                     StmtIterator netAddrStmts = model.listStatements(routeItemO, Mrs.type, (String) null);
                     if (netAddrStmts.hasNext()) {
-                        String netAddrType = routeItemP.getLocalName() + ":" + netAddrStmts.next().getObject().asLiteral().getString();
+                        String netAddrType = routeItemP + ":" + netAddrStmts.next().getObject().asLiteral().getString();
                         netAddrStmts = model.listStatements(routeItemO, Mrs.value, (String) null);
                         if (netAddrStmts.hasNext()) {
                             String netAddrValue = netAddrStmts.next().getObject().asLiteral().getString();
@@ -414,7 +420,7 @@ public class DeltaResource {
                         }
                     }
                 } else if (model.listStatements(routeItemO, RdfOwl.type, Nml.BidirectionalPort).hasNext()) {
-                    routeMap.put(routeItemP.getLocalName() + ":port", routeItemO.getURI());
+                    routeMap.put(routeItemP + ":port", routeItemO.getURI());
                 }
             }
         }
@@ -422,14 +428,19 @@ public class DeltaResource {
         Iterator<HashMap<String, String>> iterRoute = routeList.iterator();
         while (iterRoute.hasNext()) {
             HashMap<String, String> routeMap = iterRoute.next();
+            if (routeMap.containsKey("paired")) {
+                continue;
+            }
             Iterator<HashMap<String, String>> iterRoute2 = routeList.iterator();
             while (iterRoute2.hasNext()) {
                 HashMap<String, String> routeMap2 = iterRoute2.next();
                 if (routeMap2 == routeMap)
                     continue;
+                if (routeMap2.containsKey("paired"))
+                    continue;
                 // check paring critera
                 if (routeMap.containsKey(Mrs.routeFrom+":bgp-remote-ip") && routeMap2.containsKey(Mrs.nextHop+":bgp-remote-ip") 
-                    && routeMap.get(Mrs.routeFrom+":bgp-remote-ip").equals(routeMap2.get(Mrs.routeFrom+":bgp-remote-ip"))
+                    && routeMap.get(Mrs.routeFrom+":bgp-remote-ip").equals(routeMap2.get(Mrs.nextHop+":bgp-remote-ip"))
                     && routeMap.containsKey(Mrs.nextHop+":bgp-remote-ip") && routeMap2.containsKey(Mrs.routeFrom+":bgp-remote-ip") 
                     && routeMap.get(Mrs.nextHop+":bgp-remote-ip").equals(routeMap2.get(Mrs.routeFrom+":bgp-remote-ip"))) {
                     // collect l2info
@@ -473,6 +484,7 @@ public class DeltaResource {
                     HashMap<String, String> routeC2P = routeMap2;
                     Layer2Info l2infoP = l2info1;
                     Layer2Info l2infoC = l2info2;
+                    // identify the AWS provider side
                     Statement if2NameStmt = resIf2.getProperty(Nml.name);
                     if (if2NameStmt != null && if2NameStmt.getObject().asLiteral().getString().toLowerCase().contains("aws")) {
                         routeP2C = routeMap2;
@@ -483,7 +495,8 @@ public class DeltaResource {
                     // create provider STP
                     ServiceTerminationPoint stpProvider = new ServiceTerminationPoint();
                     stpProvider.setId(routeP2C.get(Mrs.routeFrom+":port"));
-                    stpProvider.setInterfaceRef(routeP2C.get(Mrs.routeFrom+":port"));
+                    String ifUrnP = NPSUtils.extractInterfaceUrn(routeP2C.get(Mrs.routeFrom+":port"));
+                    stpProvider.setInterfaceRef(ifUrnP);
                     stpProvider.setLayer2Info(l2infoP);
                     Layer3Info l3infoP = new Layer3Info();
                     BgpInfo bgpInfoP = new BgpInfo();
@@ -500,7 +513,8 @@ public class DeltaResource {
                     // create customer STP
                     ServiceTerminationPoint stpCustomer = new ServiceTerminationPoint();
                     stpCustomer.setId(routeC2P.get(Mrs.routeFrom+":port"));
-                    stpCustomer.setInterfaceRef(routeC2P.get(Mrs.routeFrom+":port"));
+                    String ifUrnC = NPSUtils.extractInterfaceUrn(routeC2P.get(Mrs.routeFrom+":port"));
+                    stpCustomer.setInterfaceRef(ifUrnC);
                     stpCustomer.setLayer2Info(l2infoC);
                     Layer3Info l3infoC = new Layer3Info();
                     BgpInfo bgpInfoC = new BgpInfo();
@@ -517,15 +531,19 @@ public class DeltaResource {
                     serviceContract.setProviderSTP(stpProvider);
                     serviceContract.getCustomerSTP().add(stpCustomer);
                     // remove both routes from list
-                    routeList.remove(routeMap);
-                    routeList.remove(routeMap2);
+                    routeMap.put("paired", "");
+                    routeMap2.put("paired", "");
                     serviceContractList.add(serviceContract);
                     break;
                 }
             }
         }
-        if (!routeList.isEmpty()) {
-            throw new BadRequestException(String.format("Total %d Routes cannot be paired up and translated into L3 contracts", routeList.size()));
+        iterRoute = routeList.iterator();
+        while (iterRoute.hasNext()) {
+            HashMap<String, String> routeMap = iterRoute.next();
+            if (!routeMap.containsKey("paired")) {
+                throw new BadRequestException(String.format("Route '%s' cannot be paired up and translated into L3 contract", routeMap.get("uri")));
+            }
         }
         return serviceContractList;
     }
