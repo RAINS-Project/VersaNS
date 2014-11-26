@@ -26,7 +26,7 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 import net.maxgigapop.versans.nps.api.*;
-import net.maxgigapop.versans.nps.device.DeviceException;
+import net.maxgigapop.versans.nps.config.NPSConfigYaml;
 import net.maxgigapop.versans.nps.manager.*;
 import net.maxgigapop.versans.nps.rest.model.*;
 
@@ -184,11 +184,16 @@ public class DeltaResource {
                 NPSGlobalState.getContractManager().handleSetup(serviceContract, String.format("Serving delta: %s-%s", delta.getReferenceVersion(), delta.getId()), true);
             } catch (ServiceException ex) {
                 // collect the added contracts to be deleted by rollback
-                for (NPSContract contract: NPSGlobalState.getContractManager().getAll()) {
-                    if (contract.getDescription().equals(String.format("Serving delta: %s-%s", delta.getReferenceVersion(), delta.getId()))) {
-                        rollbackContractList.add(contract);
+                List<NPSContract> npsContracts = NPSGlobalState.getContractManager().getAll();
+                synchronized (npsContracts) {
+                    Iterator<NPSContract> itc = npsContracts.iterator();
+                    while (itc.hasNext()) {
+                        NPSContract contract = itc.next();
+                        if (contract.getDescription().equals(String.format("Serving delta: %s-%s", delta.getReferenceVersion(), delta.getId()))) {
+                            rollbackContractList.add(contract);
+                        }
+                        hasSetupFailure = true;
                     }
-                    hasSetupFailure = true;
                 }
             }
         }
@@ -231,19 +236,26 @@ public class DeltaResource {
             return delta.getStatus();
         }
         // commitTeardown
-        Iterator<NPSContract> contractIter = NPSGlobalState.getContractManager().getAll().iterator();
-        while (contractIter.hasNext()) {
-            NPSContract contract = contractIter.next();
-            // search deletingDeltaTags
-            if (contract.getDeletingDeltaTags() != null && contract.getDeletingDeltaTags().contains(String.format("%s-%s", delta.getReferenceVersion(), delta.getId()))) {
-                try {
-                    NPSGlobalState.getContractManager().handleTeardown(contract.getId());
-                } catch (ServiceException ex) {
-                    throw new InternalServerErrorException(String.format("Failed to commit delta when deleting sub-level contract '%s'", contract.getId()));
+        //$$ thread safe ?
+        List<NPSContract> npsContracts = NPSGlobalState.getContractManager().getAll();
+        synchronized (npsContracts) {
+            Iterator<NPSContract> contractIter = npsContracts.iterator();
+            while (contractIter.hasNext()) {
+                NPSContract contract = contractIter.next();
+                // search deletingDeltaTags
+                if (contract.getDeletingDeltaTags() != null && contract.getDeletingDeltaTags().contains(String.format("%s-%s", delta.getReferenceVersion(), delta.getId()))) {
+                    try {
+                        if (contract.getStatus().equals("PREPARING")) {
+                            NPSGlobalState.getContractManager().deleteContract(contract);
+                        } else {
+                            NPSGlobalState.getContractManager().handleTeardown(contract.getId());
+                        }
+                    } catch (ServiceException ex) {
+                        throw new InternalServerErrorException(String.format("Failed to commit delta when deleting sub-level contract '%s'", contract.getId()));
+                    }
                 }
             }
-        }
-        
+            }
         // commitSetup
         // find all contracts with id.contains(delta.referenceVersion+"-"+delta.id) as well as contractRunners
         List<NPSContract> contractList = NPSGlobalState.getContractManager().getContractByDescriptionContains(String.format("%s-%s", delta.getReferenceVersion(), delta.getId()));        
@@ -286,15 +298,19 @@ public class DeltaResource {
                 l2SubnetUri = l2SubnetUri.substring(0, l2SubnetUri.length()-5);
             }
             NPSContract aContract = null;
-            for (NPSContract contract: allContracts) {
-                if (contract.getId().equals(l2SubnetUri)) {
-                    aContract = contract;
-                    break;
-                }
-                String[] uriFields = l2SubnetUri.split(":");
-                if (uriFields.length > 1 && contract.getId().endsWith(":"+uriFields[uriFields.length-1])) {
-                    aContract = contract;
-                    break;
+            synchronized (allContracts) {
+                Iterator<NPSContract> itc = allContracts.iterator();
+                while (itc.hasNext()) {
+                    NPSContract contract = itc.next();
+                    if (contract.getId().equals(l2SubnetUri)) {
+                        aContract = contract;
+                        break;
+                    }
+                    String[] uriFields = l2SubnetUri.split(":");
+                    if (uriFields.length > 1 && contract.getId().endsWith(":" + uriFields[uriFields.length - 1])) {
+                        aContract = contract;
+                        break;
+                    }
                 }
             }
             if (aContract != null) {
@@ -315,16 +331,20 @@ public class DeltaResource {
             Resource stmtSubject = stmt.getSubject();
             String l3RouteUri = stmtSubject.getURI();
             NPSContract aContract = null;
-            for (NPSContract contract: allContracts) {
-                if (l3RouteUri.startsWith(contract.getId())) {
-                    aContract = contract;
-                    break;
-                }
-                String[] uriFields = l3RouteUri.split(":");
-                if (uriFields.length > 2 && (uriFields[uriFields.length-1].equalsIgnoreCase("p2c") || uriFields[uriFields.length-1].equalsIgnoreCase("c2p")) 
-                        && contract.getId().endsWith(":"+uriFields[uriFields.length-2])) {
-                    aContract = contract;
-                    break;
+            synchronized (allContracts) {
+                Iterator<NPSContract> itc = allContracts.iterator();
+                while (itc.hasNext()) {
+                    NPSContract contract = itc.next();
+                    if (l3RouteUri.startsWith(contract.getId())) {
+                        aContract = contract;
+                        break;
+                    }
+                    String[] uriFields = l3RouteUri.split(":");
+                    if (uriFields.length > 2 && (uriFields[uriFields.length-1].equalsIgnoreCase("p2c") || uriFields[uriFields.length-1].equalsIgnoreCase("c2p")) 
+                            && contract.getId().endsWith(":"+uriFields[uriFields.length-2])) {
+                        aContract = contract;
+                        break;
+                    }
                 }
             }
             if (aContract != null && !contractList.contains(aContract)) {
@@ -486,9 +506,10 @@ public class DeltaResource {
                     HashMap<String, String> routeC2P = routeMap2;
                     Layer2Info l2infoP = l2info1;
                     Layer2Info l2infoC = l2info2;
-                    //$$ TODO  alternatively identify AWS provider side in nps.yaml
+                    // identify provider facing interface
                     Statement if2NameStmt = resIf2.getProperty(Nml.name);
-                    if (if2NameStmt != null && if2NameStmt.getObject().asLiteral().getString().toLowerCase().contains("aws")) {
+                    if (NPSConfigYaml.getInstance().getNPSGlobalConfig().isProviderFacingInterface(NPSUtils.extractInterfaceUrn(resIf2.getURI()))
+                        || (if2NameStmt != null && if2NameStmt.getObject().asLiteral().getString().toLowerCase().contains("aws"))) {
                         routeP2C = routeMap2;
                         routeC2P = routeMap;
                         l2infoP = l2info2;

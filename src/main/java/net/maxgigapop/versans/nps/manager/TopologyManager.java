@@ -448,7 +448,9 @@ public class TopologyManager extends Thread {
                 this.topologyOntModel.add(this.topologyOntBaseModel.getBaseModel());
                 List<NPSContract> npsContracts = NPSGlobalState.getContractManager().getAll();
                 synchronized (npsContracts) {
-                    for (NPSContract contract: npsContracts) {
+                    Iterator<NPSContract> itc = npsContracts.iterator();
+                    while (itc.hasNext()) {
+                        NPSContract contract = itc.next();
                         if (contract.getStatus().contains("ROLLBACKED") || contract.getStatus().contains("TERMINATED"))
                             continue;
                         // FAILED contract may get auto-deleted (rollbacked or terminated). Otherwise, it still counts

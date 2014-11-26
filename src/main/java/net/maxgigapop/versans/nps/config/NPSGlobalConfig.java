@@ -4,7 +4,10 @@
  */
 package net.maxgigapop.versans.nps.config;
 
+import java.util.Iterator;
 import java.util.Map;
+import net.maxgigapop.versans.nps.device.Interface;
+import net.maxgigapop.versans.nps.manager.NPSGlobalState;
 
 /**
  *
@@ -83,5 +86,29 @@ public class NPSGlobalConfig {
 
     public void setDevices(Map devices) {
         this.devices = devices;
+    }
+    
+    synchronized public boolean isProviderFacingInterface(String anIfUrn) {
+        Iterator devIt = this.devices.keySet().iterator();
+        while (devIt.hasNext()) {
+            String dName = (String) devIt.next();
+            Map deviceCfg = (Map) devices.get(dName);
+            Map interfaces = (Map)deviceCfg.get("interfaces");
+            if (interfaces == null)
+                continue;
+            Iterator ifIt = interfaces.keySet().iterator();
+            while (ifIt.hasNext()) {
+                String iName = (String) ifIt.next();
+                Map intfCfg = (Map) interfaces.get(iName);
+                String ifUrn = (String)intfCfg.get("urn");
+                if (ifUrn != null && ifUrn.equals(anIfUrn)) {
+                    String isProviderFacing = (String)intfCfg.get("provider_facing");
+                    if (isProviderFacing != null && isProviderFacing.toLowerCase().equals("true"))
+                        return true;
+                    break;
+                }
+            }
+        }
+        return false;
     }
 }
