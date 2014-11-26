@@ -9,6 +9,7 @@
 		<property column="error" name="error" />
 		<property column="modifiedTime" name="modifiedTime" not-null="true" />
 		<property column="contractXml" name="contractXml" />
+		<property column="deletingDeltaTags" name="deletingDeltaTags" />
 		<property name="deleted" not-null="true">
 		<column sql-type="BOOLEAN" not-null="true" name="deleted" />
 		</property>

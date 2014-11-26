@@ -18,6 +18,7 @@ import org.w3c.dom.*;
 import java.io.StringWriter;
 import java.io.StringReader;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.Unmarshaller;
@@ -42,8 +43,7 @@ public class NPSContract implements java.io.Serializable {
     private Timestamp modifiedTime = null;
     private String contractXml = "";
     private boolean deleted = false;
-    
-    private List<String> deletingDeltaTags = null;
+    private List<String> deletingDeltaTags = new ArrayList();
     
     public NPSContract() {}
 
@@ -136,12 +136,32 @@ public class NPSContract implements java.io.Serializable {
         this.contractXml = contractXml;
     }
 
-    public List<String> getDeletingDeltaTags() {
+    public String getDeletingDeltaTags() {
+        String ret = "";
+        for (String tag: this.deletingDeltaTags) {
+            ret = ret + "," + tag;
+        }
+        if (!ret.isEmpty())
+            ret = ret.substring(1);
+        return ret;
+    }
+
+    public void setDeletingDeltaTags(String deletingDeltaTags) {
+        this.deletingDeltaTags.clear();
+        if (deletingDeltaTags == null)
+            return;
+        String[] sa = deletingDeltaTags.split(",");
+        if (sa == null)
+            return;
+        for (String s: sa)
+            this.deletingDeltaTags.add(s);
+    }
+
+    public List<String> getDeletingDeltaTagList() {
         return deletingDeltaTags;
     }
 
-    public void setDeletingDeltaTags(List<String> deletingDeltaTags) {
-        this.deletingDeltaTags = deletingDeltaTags;
+    public void setDeletingDeltaTagList(List<String> deletingDeltaTagList) {
+        this.deletingDeltaTags = deletingDeltaTagList;
     }
-
 }

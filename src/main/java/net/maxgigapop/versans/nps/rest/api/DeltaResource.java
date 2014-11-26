@@ -172,9 +172,14 @@ public class DeltaResource {
 
         // mark contract to teardown by later commit
         for (NPSContract deleteContract: deleteContractList) {
-            if (deleteContract.getDeletingDeltaTags() == null)
-                deleteContract.setDeletingDeltaTags(new ArrayList<String>());
-            deleteContract.getDeletingDeltaTags().add(String.format("%s-%s", delta.getReferenceVersion(), delta.getId()));
+            if (deleteContract.getDeletingDeltaTagList() == null)
+                deleteContract.setDeletingDeltaTagList(new ArrayList<String>());
+            deleteContract.getDeletingDeltaTagList().add(String.format("%s-%s", delta.getReferenceVersion(), delta.getId()));
+            try {
+                NPSGlobalState.getContractManager().updateContract(deleteContract);
+            } catch (ServiceException ex) {
+                log.error(String.format("Failed to updateContract(%s) after adding a deletingDeltaTag, due to %s", deleteContract.getId(), ex.getMessage()));
+            }
         }
 
         List<NPSContract> rollbackContractList = new ArrayList<NPSContract>();
@@ -192,9 +197,9 @@ public class DeltaResource {
                         if (contract.getDescription().equals(String.format("Serving delta: %s-%s", delta.getReferenceVersion(), delta.getId()))) {
                             rollbackContractList.add(contract);
                         }
-                        hasSetupFailure = true;
                     }
                 }
+                hasSetupFailure = true;
             }
         }
         // rollback: delete all contracts in rollbackContractList
@@ -236,26 +241,24 @@ public class DeltaResource {
             return delta.getStatus();
         }
         // commitTeardown
-        //$$ thread safe ?
-        List<NPSContract> npsContracts = NPSGlobalState.getContractManager().getAll();
-        synchronized (npsContracts) {
-            Iterator<NPSContract> contractIter = npsContracts.iterator();
-            while (contractIter.hasNext()) {
-                NPSContract contract = contractIter.next();
-                // search deletingDeltaTags
-                if (contract.getDeletingDeltaTags() != null && contract.getDeletingDeltaTags().contains(String.format("%s-%s", delta.getReferenceVersion(), delta.getId()))) {
-                    try {
-                        if (contract.getStatus().equals("PREPARING")) {
-                            NPSGlobalState.getContractManager().deleteContract(contract);
-                        } else {
-                            NPSGlobalState.getContractManager().handleTeardown(contract.getId());
-                        }
-                    } catch (ServiceException ex) {
-                        throw new InternalServerErrorException(String.format("Failed to commit delta when deleting sub-level contract '%s'", contract.getId()));
+        // use getAllFresh() to fix thread safety hazard
+        List<NPSContract> npsContracts = NPSGlobalState.getContractManager().getAllFresh();
+        Iterator<NPSContract> contractIter = npsContracts.iterator();
+        while (contractIter.hasNext()) {
+            NPSContract contract = contractIter.next();
+            // search deletingDeltaTags
+            if (contract.getDeletingDeltaTagList() != null && contract.getDeletingDeltaTagList().contains(String.format("%s-%s", delta.getReferenceVersion(), delta.getId()))) {
+                try {
+                    if (contract.getStatus().equals("PREPARING")) {
+                        NPSGlobalState.getContractManager().deleteContract(contract);
+                    } else {
+                        NPSGlobalState.getContractManager().handleTeardown(contract.getId());
                     }
+                } catch (ServiceException ex) {
+                    throw new InternalServerErrorException(String.format("Failed to commit delta when deleting sub-level contract '%s'", contract.getId()));
                 }
             }
-            }
+        }
         // commitSetup
         // find all contracts with id.contains(delta.referenceVersion+"-"+delta.id) as well as contractRunners
         List<NPSContract> contractList = NPSGlobalState.getContractManager().getContractByDescriptionContains(String.format("%s-%s", delta.getReferenceVersion(), delta.getId()));        

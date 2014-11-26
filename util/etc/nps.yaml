@@ -22,6 +22,7 @@ devices:
             interface1-1:
                 urn: 'urn:ogf:network:domain=sdnx.maxgigapop.net:node=MAX:port=fe-0/2/1'
                 description: interface1-1
+                provider_facing: true
             interface1-2:
                 urn: 'urn:ogf:network:domain=sdnx.maxgigapop.net:node=MAX:port=fe-0/2/2'
                 description: interface1-2

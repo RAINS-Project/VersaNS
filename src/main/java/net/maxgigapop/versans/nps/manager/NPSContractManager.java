@@ -334,7 +334,10 @@ public class NPSContractManager extends Thread {
 
     public List<NPSContract> getAll() {
         return this.npsContracts;
-        /*
+    }
+
+
+    public List<NPSContract> getAllFresh() {
         synchronized (npsContracts) {
            try {
                 session = HibernateUtil.getSessionFactory().openSession();
@@ -349,9 +352,8 @@ public class NPSContractManager extends Thread {
             }
         }
         return null;
-        */
-    }
-
+    }    
+    
     public NPSContract getContractById(String cid) {
         synchronized (npsContracts) {
             for (NPSContract ct: npsContracts) {
@@ -501,16 +503,6 @@ public class NPSContractManager extends Thread {
                     contractRunner.setPollInterval(NPSGlobalState.getPollInterval());
                     contractRunner.setReloaded(true);
                     contractRunner.start();
-                }
-                else if (contract.getStatus().equalsIgnoreCase("PREPARING")) {
-                    contract.setStatus("FAILED");
-                    contract.setError("reloadFromDB force 'FAILED' from status 'PREPARING'");
-                    try {
-                        updateContract(contract);
-                    } catch (Exception ex) {
-                        ;
-                    }
-                    itCt.remove();
                 }
             }
         }
