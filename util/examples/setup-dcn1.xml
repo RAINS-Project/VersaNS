@@ -15,7 +15,7 @@ Content-Length: CONTENT_LENGTH
         <setup xmlns="http://maxgigapop.net/versans/nps/api/">
             <transactionId>trans-12345</transactionId>
             <description>test</description>
-            <serviceContract id="svc-dcn-10011" type="dcn-layer2">
+            <serviceContract id="svc-dcn-10013" type="dcn-layer2">
                 <customerSTP id="urn:ogf:network:domain=dragon.maxgigapop.net:node=CLPK:port=1-2-3:link=*">
                     <interfaceRef>customer-A-srcif</interfaceRef>
                     <layer2Info>

@@ -28,7 +28,7 @@ import java.io.StringWriter;
  * @author xyang
  */ 
 public class TopologyManager extends Thread {
-    private final org.apache.log4j.Logger log;
+    private static final Logger logger = Logger.getLogger(TopologyManager.class.getName());
     private Date lastestModelTime = new Date(0);
     private OntModel topologyOntBaseModel = null;
     private OntModel topologyOntHeadModel = null;
@@ -38,7 +38,6 @@ public class TopologyManager extends Thread {
     private final Integer topologyOntModelLock = new Integer(0);
 
     public TopologyManager() {
-        log = org.apache.log4j.Logger.getLogger(this.getClass());
     }
 
     public Date getLastestModelTime() {
@@ -124,7 +123,7 @@ public class TopologyManager extends Thread {
                 NPSGlobalState.getDeviceStore().update(device);
             }
             if (interfaces == null) {
-                log.warn("device '"+dName+"' has no interfaces configured");
+                logger.warn("device '"+dName+"' has no interfaces configured");
                 continue;
             }
             Iterator ifIt = interfaces.keySet().iterator();
@@ -264,6 +263,10 @@ public class TopologyManager extends Thread {
         Resource resSubnet = null;
         Resource resNode = null;
         Resource resCustomerSubIf = null;
+        if (contract.getCustomerSTPs() == null) {
+            logger.warn(String.format("%s has no customerSTPs", contract));
+            return;
+        }
         for (ServiceTerminationPoint stp: contract.getCustomerSTPs()) {
             String portUrn = stp.getId();
             Layer2Info l2info = stp.getLayer2Info();
@@ -434,7 +437,7 @@ public class TopologyManager extends Thread {
             try {
                 this.sleep(pollInterval);
             } catch (InterruptedException e) {
-                log.warn("TopologyManager run sleep got interrupted!");
+                logger.warn("TopologyManager run sleep got interrupted!");
             }
             synchronized (this.topologyOntModelLock) { 
                 this.topologyOntModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_MEM_MICRO_RULE_INF); 
@@ -451,9 +454,10 @@ public class TopologyManager extends Thread {
                     Iterator<NPSContract> itc = npsContracts.iterator();
                     while (itc.hasNext()) {
                         NPSContract contract = itc.next();
-                        if (contract.getStatus().contains("ROLLBACKED") || contract.getStatus().contains("TERMINATED"))
+                        if (contract.getStatus().contains("ROLLBACKED") 
+                                || contract.getStatus().contains("FAILED")
+                                || contract.getStatus().contains("TERMINATED"))
                             continue;
-                        // FAILED contract may get auto-deleted (rollbacked or terminated). Otherwise, it still counts
                         addContractToOntModel(this.topologyOntModel, contract);
                     }
                 }                

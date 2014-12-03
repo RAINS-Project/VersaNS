@@ -164,4 +164,8 @@ public class NPSContract implements java.io.Serializable {
     public void setDeletingDeltaTagList(List<String> deletingDeltaTagList) {
         this.deletingDeltaTags = deletingDeltaTagList;
     }
+    
+    public String toString() {
+        return String.format("Contract (id=%s, status=%s)", this.id, this.status);
+    }
 }

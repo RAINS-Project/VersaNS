@@ -250,6 +250,9 @@ public class DeltaResource {
             if (contract.getDeletingDeltaTagList() != null && contract.getDeletingDeltaTagList().contains(String.format("%s-%s", delta.getReferenceVersion(), delta.getId()))) {
                 try {
                     if (contract.getStatus().equals("PREPARING")) {
+                        // if used NPSGlobalState.getContractManager().getAll(), the below will be removing on the same list
+                        // and cause ConcurrentModificationException. Only contractIter.remove() can avoid that. 
+                        // We can put db delete code here (without deleteContract) and then use contractIter.remove().
                         NPSGlobalState.getContractManager().deleteContract(contract);
                     } else {
                         NPSGlobalState.getContractManager().handleTeardown(contract.getId());
