@@ -70,6 +70,7 @@ public class DeltaResource {
         for (NPSContract contract : contractList) {
             if (contract.getStatus().contains("FAILED") || contract.getStatus().contains("ROLLBACKED") || contract.getStatus().contains("TERMINATED")) {
                 delta.setStatus("COMMIT_FAILED");
+                allActive = false;
                 break;
             }
             if (!contract.getStatus().equals("ACTIVE")) {
