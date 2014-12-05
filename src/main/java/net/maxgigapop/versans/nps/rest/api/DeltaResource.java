@@ -68,7 +68,7 @@ public class DeltaResource {
         boolean allActive = true;
         boolean inSetup = false;
         for (NPSContract contract : contractList) {
-            if (contract.getStatus().contains("FAILED") || contract.getStatus().contains("ROLLBACKED")) {
+            if (contract.getStatus().contains("FAILED") || contract.getStatus().contains("ROLLBACKED") || contract.getStatus().contains("TERMINATED")) {
                 delta.setStatus("COMMIT_FAILED");
                 break;
             }
