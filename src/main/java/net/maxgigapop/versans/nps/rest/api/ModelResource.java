@@ -51,6 +51,21 @@ public class ModelResource {
         return model;
     }
 
+
+    /**
+     * Retrieves last version of Model
+     * @return an instance of net.maxgigapop.versans.nps.rest.model.ModelBase
+     */
+    @GET
+    @Produces({"application/xml", "application/json"})
+    @Path("/{version}")
+    public String query(@PathParam("version") String version)  {
+        if (version.equals(NPSGlobalState.getTopologyManager().getTopologyOntHeadModelVersion())) {
+            return "LATEST";
+        }
+        return "OUTDATED";
+    }
+    
     /**
      * Push a new version of Model
      * @param an model instance
