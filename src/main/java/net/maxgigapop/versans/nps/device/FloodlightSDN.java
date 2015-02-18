@@ -11,7 +11,6 @@ import java.util.Map;
 import net.maxgigapop.versans.nps.api.ServicePolicy;
 import net.maxgigapop.versans.nps.api.ServiceTerminationPoint;
 import net.maxgigapop.versans.nps.device.floodlight.Flow;
-import net.maxgigapop.versans.nps.device.floodlight.RESTConnector;
 import net.maxgigapop.versans.nps.manager.NPSGlobalState;
 import net.maxgigapop.versans.nps.manager.NPSUtils;
 import org.codehaus.jettison.json.JSONException;

@@ -2,7 +2,7 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package net.maxgigapop.versans.nps.device.floodlight;
+package net.maxgigapop.versans.nps.device;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
@@ -13,7 +13,9 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 import net.maxgigapop.versans.nps.device.DeviceException;
+import net.maxgigapop.versans.nps.device.floodlight.Flow;
 import org.apache.log4j.Logger;
+import sun.misc.BASE64Encoder;
 
 /**
  *
@@ -63,6 +65,15 @@ public class RESTConnector {
         try {
             URL address = new URL(url);
             httpConn = (HttpURLConnection)address.openConnection();
+            if (this.httpUser != null) {
+                String authString = this.httpUser + ":" + this.httpPass;
+                System.out.println("Auth string: " + authString);
+    
+                String authStringEnc = new BASE64Encoder().encode(authString.getBytes());
+                System.out.println("Base64 encoded auth string: " + authStringEnc);
+ 
+                httpConn.setRequestProperty("Authorization", "Basic " + authStringEnc);
+            }
             if (method.equalsIgnoreCase("DELETE")) {
                 httpConn.setRequestMethod("POST");
                 httpConn.setRequestProperty("X-HTTP-Method-Override", "DELETE");
