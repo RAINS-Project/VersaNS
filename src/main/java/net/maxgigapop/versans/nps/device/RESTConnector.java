@@ -185,4 +185,13 @@ public class RESTConnector {
         }
         return response;
     }
+    
+    public String addNewCircuit(String config) throws DeviceException{
+        String url = controllerUrl + config;
+        this.connect(url, "GET");
+        
+        String response = this.sendCommand("");
+        log.debug(String.format("Received response: %s", response));
+        return response;
+    }
 }

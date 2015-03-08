@@ -101,4 +101,12 @@ devices:
             interface4-4:
                 urn: 'urn:ogf:network:domain=sdn.maxgigapop.net:node=MAX:port=4'
                 description: interface4-4
-
+    OESS:
+        urn: 'urn:ogf:network:domain=sdnx.maxgigapop.net:node=OESS'
+        make_model: 'net.maxgigapop.versans.nps.device.OESS'
+        address: 'dev2.jetstream.maxgigapop.net'
+        description: 'OESS Controller'
+        connector:
+            controller_url: 'https://oess-idc.maxgigapop.net/OESS/'
+            http_user: chen
+            password: 'terrapinclouds'
