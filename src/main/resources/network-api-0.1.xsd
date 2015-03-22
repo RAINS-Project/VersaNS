@@ -102,7 +102,15 @@
     </xs:complexType>
     <xs:complexType name="layer3Info">
         <xs:sequence>
-            <xs:element name="bgpInfo" type="tns:bgpInfo"/>
+            <xs:element minOccurs="0" name="route" type="tns:routeInfo"/>
+            <xs:element minOccurs="0" name="bgpInfo" type="tns:bgpInfo"/>
+        </xs:sequence>
+    </xs:complexType>
+    <xs:complexType name="routeInfo">
+        <xs:sequence>
+            <xs:element minOccurs="0" name="routeTo" type="xs:string"/>
+            <xs:element minOccurs="0" name="routeFrom" type="xs:string"/>
+            <xs:element minOccurs="0" name="nextHop" type="xs:string"/>
         </xs:sequence>
     </xs:complexType>
     <xs:complexType name="bgpInfo">

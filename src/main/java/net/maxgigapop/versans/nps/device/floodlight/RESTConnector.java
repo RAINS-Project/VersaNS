@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 import net.maxgigapop.versans.nps.device.DeviceException;
 import org.apache.log4j.Logger;
+import sun.misc.BASE64Encoder;
 
 /**
  *

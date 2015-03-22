@@ -113,6 +113,14 @@ public class ObjectFactory {
     }
 
     /**
+     * Create an instance of {@link RouteInfo }
+     * 
+     */
+    public RouteInfo createRouteInfo() {
+        return new RouteInfo();
+    }
+
+    /**
      * Create an instance of {@link Layer2Info }
      * 
      */
