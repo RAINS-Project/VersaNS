@@ -103,7 +103,7 @@ public class OESS implements NetworkDeviceInstance {
         }
         if (this.delta == null) {
             // construct flows
-            String applyCmd = "provisioning.cgi?action=provision_circuit&circuit_id=-1";
+            String applyCmd = "services/provisioning.cgi?action=provision_circuit&circuit_id=-1";
             applyCmd += "&description=circuit-for-contract-" + contractId + "&bandwidth=0&provision_time=-1&remove_time=-1&workgroup_id=1";
             for (ServiceTerminationPoint stp : localSTPs) {
                 String deviceName = NPSUtils.getDcnUrnField(stp.getId(), "node");
@@ -143,13 +143,13 @@ public class OESS implements NetworkDeviceInstance {
             try {
                 String response = connector.addNewCircuit(this.delta.getCmdToApply());
                 JSONObject jsonResponse = new JSONObject(response);
-                JSONObject jsonResult = jsonResponse.getJSONObject("result");
-                String deleteCmd = "provisioning.cgi?action=remove_circuit";
+                JSONObject jsonResult = jsonResponse.getJSONObject("results");
+                String deleteCmd = "services/provisioning.cgi?action=remove_circuit";
                 if (jsonResult.getInt("success") != 1) {
                     transferStatus("FAILED");
                     return;
                 }
-                deleteCmd +="&circuit=" + jsonResult.getString("circuit_id") + "&remove_time=-1&workgroup_id=1";
+                deleteCmd +="&circuit_id=" + jsonResult.getString("circuit_id") + "&remove_time=-1&workgroup_id=1";
                 this.delta.setCmdToDelete(deleteCmd);
                 
             } catch (JSONException e) {
@@ -161,7 +161,28 @@ public class OESS implements NetworkDeviceInstance {
 
     @Override
     public void deleteDelta() throws DeviceException {
-        
+        if (delta == null || this.delta.getCmdToDelete().isEmpty()) {
+            throw new DeviceException("No device delta or empty GRi in CmdToDelete");
+        }
+        transferStatus("DELETING");
+        synchronized(RESTConnector.simplyLock) {
+            RESTConnector connector = RESTConnector.getRESTConnector();
+            connector.setConfig(deviceRef.getConnectorConfig());
+            try {
+                String response = connector.addNewCircuit(this.delta.getCmdToDelete());
+                JSONObject jsonResponse = new JSONObject(response);
+                JSONObject jsonResult = jsonResponse.getJSONArray("results").getJSONObject(0);
+                if (jsonResult.getInt("success") != 1) {
+                    transferStatus("FAILED");
+                    return;
+                }
+                
+            } catch (JSONException e) {
+                throw new DeviceException("JSONException caught in deleteDelta: " + e.getMessage());
+            }
+       
+        }
+        transferStatus("DELETED");
     }
 
     @Override
