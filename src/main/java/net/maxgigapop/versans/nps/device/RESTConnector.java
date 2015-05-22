@@ -2,7 +2,7 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package net.maxgigapop.versans.nps.device.floodlight;
+package net.maxgigapop.versans.nps.device;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
@@ -12,15 +12,25 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+import javax.net.ssl.TrustManager;
 import net.maxgigapop.versans.nps.device.DeviceException;
+import net.maxgigapop.versans.nps.device.floodlight.Flow;
 import org.apache.log4j.Logger;
 import sun.misc.BASE64Encoder;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import java.security.cert.X509Certificate;
 
 /**
  *
  * @author xyang
  */
-public class RESTConnector {
+public class RESTConnector { 
     private Logger log = null;
     private String controllerUrl = null;
     private HashMap<String, String> dpidMap = null;
@@ -34,6 +44,40 @@ public class RESTConnector {
    
     protected RESTConnector() {
         this.log = org.apache.log4j.Logger.getLogger(this.getClass());
+        TrustManager[] trustAllCerts = new TrustManager[] {new X509TrustManager() {
+                @Override
+                public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                    return null;
+                }
+                @Override
+                public void checkClientTrusted(X509Certificate[] certs, String authType) {
+                }
+                @Override
+                public void checkServerTrusted(X509Certificate[] certs, String authType) {
+                }
+            }
+        };
+        SSLContext sc = null;
+        // Install the all-trusting trust manager
+        try {
+            sc = SSLContext.getInstance("SSL");
+            sc.init(null, trustAllCerts, new java.security.SecureRandom());
+        }
+        catch (Exception e) {
+            this.log.error(String.format("exception when create ssl context"));
+        }
+        HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+ 
+        // Create all-trusting host name verifier
+        HostnameVerifier allHostsValid = new HostnameVerifier() {
+            @Override
+            public boolean verify(String hostname, SSLSession session) {
+                return true;
+            }
+        };
+ 
+        // Install the all-trusting host verifier
+        HttpsURLConnection.setDefaultHostnameVerifier(allHostsValid);
     }
 
     static public RESTConnector getRESTConnector() {
@@ -64,6 +108,15 @@ public class RESTConnector {
         try {
             URL address = new URL(url);
             httpConn = (HttpURLConnection)address.openConnection();
+            if (this.httpUser != null) {
+                String authString = this.httpUser + ":" + this.httpPass;
+                System.out.println("Auth string: " + authString);
+    
+                String authStringEnc = new BASE64Encoder().encode(authString.getBytes());
+                System.out.println("Base64 encoded auth string: " + authStringEnc);
+ 
+                httpConn.setRequestProperty("Authorization", "Basic " + authStringEnc);
+            }
             if (method.equalsIgnoreCase("DELETE")) {
                 httpConn.setRequestMethod("POST");
                 httpConn.setRequestProperty("X-HTTP-Method-Override", "DELETE");
@@ -173,6 +226,15 @@ public class RESTConnector {
             }
             response += queryStaticFlows(flowNamePrefix, dpid);
         }
+        return response;
+    }
+    
+    public String addNewCircuit(String config) throws DeviceException{
+        String url = controllerUrl + config;
+        this.connect(url, "GET");
+        
+        String response = this.sendCommand("");
+        log.debug(String.format("Received response: %s", response));
         return response;
     }
 }

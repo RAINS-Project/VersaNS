@@ -22,6 +22,13 @@ import java.io.StringReader;
 import net.maxgigapop.versans.nps.api.*;
 import net.maxgigapop.versans.nps.rest.model.*;
 import java.io.StringWriter;
+import net.maxgigapop.versans.nps.device.DeviceException;
+import net.maxgigapop.versans.nps.device.RESTConnector;
+import org.apache.commons.httpclient.URIException;
+import org.apache.commons.httpclient.util.URIUtil;
+import org.codehaus.jettison.json.JSONArray;
+import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
 
 /**
  *
@@ -72,7 +79,7 @@ public class TopologyManager extends Thread {
     
     // parse a topology configure file (yaml or xml)
     // create device and interface in DB if not existent
-    public void initNetworkTopology() throws ConfigException {
+    public void initNetworkTopology() throws ConfigException, DeviceException, URIException {
         NPSGlobalConfig config = NPSConfigYaml.getInstance().getNPSGlobalConfig();
         Map devices = config.getDevices();
         Iterator devIt = devices.keySet().iterator();
@@ -124,6 +131,46 @@ public class TopologyManager extends Thread {
             }
             if (interfaces == null) {
                 logger.warn("device '"+dName+"' has no interfaces configured");
+                // Find all available interfaces on the device (Only support OESS right now)
+                if (dName.equals("OESS")) {
+                    // Clean up database
+                    device.setInterfaces(new ArrayList<Interface>());
+                    List<Interface> intfs = NPSGlobalState.getInterfaceStore().getByDeviceUrn(urn);
+                    if (intfs != null) {
+                        for (Interface intf : intfs) {
+                            NPSGlobalState.getInterfaceStore().delete(intf);
+                        } 
+                    }
+                    synchronized(RESTConnector.simplyLock) {
+                        RESTConnector OESSconnector = RESTConnector.getRESTConnector();
+                        OESSconnector.setConfig(device.getConnectorConfig());
+                        String queryCmd = "services/data.cgi?action=get_all_resources_for_workgroup&workgroup_id=1";
+                        try {
+                            String response = OESSconnector.addNewCircuit(queryCmd);
+                            JSONObject jsonResponse = new JSONObject(response);
+                            JSONArray jsonResult = jsonResponse.getJSONArray("results");
+                            for (int i = 0; i < jsonResult.length(); i++) {
+                                JSONObject intfJSON = jsonResult.getJSONObject(i);
+                                if (intfJSON.getString("operational_state").equals("up")) {
+                                    String nodeName = intfJSON.getString("node_name");
+                                    String intName = URIUtil.encodeQuery(intfJSON.getString("interface_name"));
+                                    String desc = intfJSON.getString("description");
+                                    String ifUrn = "urn:ogf:network:domain=openflow.maxgigapop.net:node=" + nodeName + ":port=" + intName + ":link=*";
+                                    Interface intf = new Interface();
+                                    intf.setUrn(ifUrn);
+                                    intf.setDescription(desc);
+                                    //intf.setAliasUrn(aliasUrn);
+                                    intf.setDeviceId(device.getId());
+                                    intf.setMakeModel("Generic");
+                                    NPSGlobalState.getInterfaceStore().add(intf);
+                                    device.getInterfaces().add(intf);
+                                }
+                            }
+                        } catch (JSONException e) {
+                            throw new DeviceException("JSONException caught when calculating shortest path: " + e.getMessage());
+                        }
+                    }
+                }
                 continue;
             }
             Iterator ifIt = interfaces.keySet().iterator();
