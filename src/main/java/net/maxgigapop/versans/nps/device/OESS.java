@@ -15,6 +15,7 @@ import net.maxgigapop.versans.nps.api.ServiceTerminationPoint;
 import net.maxgigapop.versans.nps.device.floodlight.Flow;
 import net.maxgigapop.versans.nps.manager.NPSGlobalState;
 import net.maxgigapop.versans.nps.manager.NPSUtils;
+import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 
@@ -104,14 +105,33 @@ public class OESS implements NetworkDeviceInstance {
         if (this.delta == null) {
             // construct flows
             String applyCmd = "services/provisioning.cgi?action=provision_circuit&circuit_id=-1";
+            String shortPathCmd = "services/data.cgi?action=get_shortest_path";
             applyCmd += "&description=circuit-for-contract-" + contractId + "&bandwidth=0&provision_time=-1&remove_time=-1&workgroup_id=1";
             for (ServiceTerminationPoint stp : localSTPs) {
                 String deviceName = NPSUtils.getDcnUrnField(stp.getId(), "node");
                 applyCmd += "&node=" + deviceName;
+                shortPathCmd += "&node=" + deviceName;
                 String portName = NPSUtils.getDcnUrnField(stp.getId(), "port");
                 applyCmd += "&interface=" + portName;
                 String vlan = stp.getLayer2Info().getOuterVlanTag().getValue();
                 applyCmd += "&tag=" + vlan;
+            }
+            // Calculate shortest path
+            synchronized(RESTConnector.simplyLock) {
+                RESTConnector connector = RESTConnector.getRESTConnector();
+                connector.setConfig(deviceRef.getConnectorConfig());
+                try {
+                    String response = connector.addNewCircuit(shortPathCmd);
+                    JSONObject jsonResponse = new JSONObject(response);
+                    JSONArray jsonResult = jsonResponse.getJSONArray("results");
+                    //String pathCmd = "services/provisioning.cgi?action=remove_circuit";
+                    for (int i = 0; i < jsonResult.length(); i++) {
+                        JSONObject link = jsonResult.getJSONObject(i);
+                        applyCmd += "&link=" + link.getString("link");
+                    }
+                } catch (JSONException e) {
+                    throw new DeviceException("JSONException caught when calculating shortest path: " + e.getMessage());
+                }
             }
             this.delta = new DeviceDelta();
             this.delta.setCmdToApply(applyCmd);
